@@ -9,11 +9,15 @@ Two distinct steps that appear at different points in the pipeline.
 
 ## PCA — After HVG Selection
 
+`run_pca()` handles two steps: z-score scaling (each gene to mean=0, var=1) then PCA. Scaling is standard and required so that highly-expressed genes don't dominate the principal components.
+
 ```python
 from scagent.tools.pca import run_pca
 
 result = run_pca(adata, n_comps=50, random_state=0, plot_dir="data/working/plots")
 ```
+
+After this call, `adata.X` contains z-scores (not log-counts). `adata.raw` still holds log-normalized values for all genes — used for plotting and marker detection.
 
 **Show the user:**
 - The elbow plot (`pca_elbow.png`) — shows variance explained per PC

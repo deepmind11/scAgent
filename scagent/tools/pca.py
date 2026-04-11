@@ -17,12 +17,26 @@ def run_pca(
     *,
     n_comps: int = 50,
     use_highly_variable: bool = True,
+    scale: bool = True,
+    max_value: float | None = 10.0,
     svd_solver: str = "arpack",
     random_state: int = 0,
     plot_dir: str | None = None,
     checkpoint_dir: str | None = None,
 ) -> dict:
-    """Run PCA. Modifies *adata* in place.
+    """Z-score scale and run PCA. Modifies *adata* in place.
+
+    The standard Scanpy pipeline is::
+
+        normalize_total → log1p → [set adata.raw] → HVG → **scale** → PCA
+
+    This function handles the last two steps: z-score scaling (each gene
+    to mean 0, variance 1) followed by PCA. Scaling is required before
+    PCA so that highly-expressed genes don't dominate the components.
+
+    After scaling, ``adata.X`` contains z-scores (not log-counts).
+    ``adata.raw`` (set during normalization) still holds the log-normalized
+    values for all genes — used for plotting and marker detection.
 
     Adds ``adata.obsm['X_pca']`` and ``adata.uns['pca']``.
 
@@ -33,6 +47,12 @@ def run_pca(
     use_highly_variable
         Restrict PCA to highly variable genes. Should be *True* after
         HVG selection.
+    scale
+        Z-score scale genes before PCA (mean=0, var=1). Standard and
+        recommended. Set *False* only if data is already scaled.
+    max_value
+        Clip scaled values to this maximum (avoids outlier genes
+        dominating PCA). 10 is the Scanpy default. *None* to disable.
     svd_solver
         SVD solver. ``'arpack'`` is default and deterministic.
         ``'randomized'`` is faster for large datasets (>50K cells)
@@ -48,6 +68,11 @@ def run_pca(
     -------
     Result dict with metrics, plots, provenance.
     """
+    # Step 1: Z-score scaling (standard pre-PCA step)
+    if scale:
+        sc.pp.scale(adata, max_value=max_value)
+
+    # Step 2: PCA
     sc.pp.pca(
         adata,
         n_comps=n_comps,
@@ -85,6 +110,8 @@ def run_pca(
             "parameters": {
                 "n_comps": n_comps,
                 "use_highly_variable": use_highly_variable,
+                "scale": scale,
+                "max_value": max_value,
                 "svd_solver": svd_solver,
                 "random_state": random_state,
             },
