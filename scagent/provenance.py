@@ -122,6 +122,7 @@ class ProvenanceGraph:
         self._activities: list[Activity] = []
         self._agents: dict[str, ToolAgent] = {}  # keyed by tool_id
         self._sessions: list[Session] = []
+        self._promoted_branch: str | None = None
 
         # Monotonic counter for unique activity IDs
         self._counter: int = 0
@@ -312,8 +313,49 @@ class ProvenanceGraph:
         return out
 
     def get_chain(self, branch: str = "main") -> list[dict[str, Any]]:
-        """Return the ordered activity chain for *branch*."""
+        """Return the ordered activity chain for *branch* (this branch only)."""
         return [a for a in self.list_activities(branch=branch)]
+
+    def get_full_chain(self, branch: str = "main") -> list[dict[str, Any]]:
+        """Return the complete lineage for *branch*, including inherited parent steps.
+
+        When a branch was forked from another, this traces back through the
+        fork point and prepends the parent's steps.  The result is the full
+        sequence of tool invocations needed to reproduce the branch's current
+        state from raw data.
+        """
+        # Find the fork entity for this branch (if any)
+        fork_entity = None
+        for e in self._entities:
+            if e.branch == branch and e.step_index == -1 and e.id.startswith("sca:fork_"):
+                fork_entity = e
+                break
+
+        if fork_entity is None or fork_entity.derived_from is None:
+            # Not forked — just return this branch's chain
+            return self.get_chain(branch)
+
+        # Find which branch + step the fork came from
+        parent_entity = self._find_entity(fork_entity.derived_from)
+        if parent_entity is None:
+            return self.get_chain(branch)
+
+        # Recursively get the parent's full chain up to the fork point
+        parent_chain = self.get_full_chain(parent_entity.branch)
+        # Keep parent steps up to and including the fork point
+        prefix = [a for a in parent_chain
+                  if a["output"] == parent_entity.id
+                  or parent_chain.index(a) < len(parent_chain)]
+
+        # The fork point is the parent entity's step_index
+        # Keep all parent activities up through the entity that was forked from
+        cutoff_ids: set[str] = set()
+        for e in self._entities:
+            if e.branch == parent_entity.branch and e.step_index <= parent_entity.step_index:
+                cutoff_ids.add(e.generated_by)
+        prefix = [a for a in parent_chain if a["activity_id"] in cutoff_ids]
+
+        return prefix + self.get_chain(branch)
 
     def summary(self, branch: str = "main") -> str:
         """Human-readable Markdown table of the analysis provenance."""
@@ -382,9 +424,45 @@ class ProvenanceGraph:
             "parameter_diffs": _find_param_diffs(chain_a[shared:], chain_b[shared:]),
         }
 
-    def replay_plan(self, branch: str = "main") -> list[tuple[str, dict[str, Any]]]:
-        """Return ``[(tool_id, parameters), …]`` for reproducing the analysis."""
-        return [(a["tool_id"], a["parameters"]) for a in self.get_chain(branch)]
+    def replay_plan(self, branch: str = "main", *, full: bool = True) -> list[tuple[str, dict[str, Any]]]:
+        """Return ``[(tool_id, parameters), …]`` for reproducing the analysis.
+
+        Parameters
+        ----------
+        branch
+            Which branch to generate the plan for.
+        full
+            If *True* (default), includes inherited parent steps for forked
+            branches — i.e. the complete pipeline from raw data.
+            If *False*, only steps on this branch.
+        """
+        chain = self.get_full_chain(branch) if full else self.get_chain(branch)
+        return [(a["tool_id"], a["parameters"]) for a in chain]
+
+    def promote_branch(self, branch: str) -> None:
+        """Mark *branch* as the canonical/final analysis pipeline.
+
+        Creates a metadata marker so ``export_plan()`` and colleagues
+        know which branch represents the settled result vs. exploration.
+        """
+        if branch not in self._branch_steps:
+            raise ValueError(f"Branch '{branch}' does not exist")
+        self._promoted_branch = branch
+        self.save()
+
+    @property
+    def promoted_branch(self) -> str | None:
+        """The branch marked as the canonical result, or *None*."""
+        return self._promoted_branch
+
+    def export_plan(self) -> list[tuple[str, dict[str, Any]]]:
+        """Return the replay plan for the promoted (canonical) branch.
+
+        If no branch has been promoted, falls back to ``main``.
+        This is what you send to a colleague for reproduction.
+        """
+        branch = self._promoted_branch or "main"
+        return self.replay_plan(branch, full=True)
 
     @property
     def n_activities(self) -> int:
@@ -467,7 +545,7 @@ class ProvenanceGraph:
                 snode[f"sca:{k}_version"] = v
             graph_nodes.append(snode)
 
-        return {
+        doc: dict[str, Any] = {
             "@context": {
                 "prov": "http://www.w3.org/ns/prov#",
                 "sca": "https://scagent.dev/ontology/v1#",
@@ -475,6 +553,9 @@ class ProvenanceGraph:
             },
             "@graph": graph_nodes,
         }
+        if self._promoted_branch:
+            doc["sca:promoted_branch"] = self._promoted_branch
+        return doc
 
     # ------------------------------------------------------------------
     # Persistence
@@ -490,6 +571,7 @@ class ProvenanceGraph:
     def _load(self) -> None:
         """Populate internal state from an existing JSONLD file."""
         data = json.loads(self._path.read_text(encoding="utf-8"))
+        self._promoted_branch = data.get("sca:promoted_branch")
         graph_nodes = data.get("@graph", [])
 
         # Separate by type

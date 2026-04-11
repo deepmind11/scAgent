@@ -399,3 +399,91 @@ class TestForkBranch:
         graph.record("pca", {"n_comps": 50}, branch="main")
         with pytest.raises(ValueError, match="already exists"):
             graph.fork_branch("main", from_branch="main")
+
+
+class TestFullChain:
+    def test_unfrosted_branch_same_as_chain(self, graph):
+        """A branch that was never forked: get_full_chain == get_chain."""
+        graph.record("load_10x_h5", {"filename": "test.h5"})
+        graph.record("pca", {"n_comps": 50})
+
+        assert graph.get_full_chain("main") == graph.get_chain("main")
+
+    def test_forked_branch_includes_parent_prefix(self, graph):
+        """A forked branch's full chain includes the parent's steps."""
+        # Build main: load → filter → pca → neighbors
+        graph.record("load_10x_h5", {"filename": "test.h5"}, branch="main")
+        graph.record("filter_cells", {"min_genes": 200}, branch="main")
+        graph.record("pca", {"n_comps": 50}, branch="main")
+        graph.record("neighbor_graph", {"n_neighbors": 15}, branch="main")
+
+        # Fork at this point
+        graph.fork_branch("high_res", from_branch="main")
+
+        # Continue on the fork
+        graph.record("leiden_clustering", {"resolution": 2.0}, branch="high_res")
+        graph.record("wilcoxon_markers", {"groupby": "leiden"}, branch="high_res")
+
+        # Full chain of fork should include main's 4 steps + fork's 2
+        full = graph.get_full_chain("high_res")
+        tools = [a["tool_id"] for a in full]
+        assert tools == [
+            "load_10x_h5", "filter_cells", "pca", "neighbor_graph",
+            "leiden_clustering", "wilcoxon_markers",
+        ]
+
+        # Plain get_chain should only have the fork's 2 steps
+        own = graph.get_chain("high_res")
+        assert len(own) == 2
+
+    def test_replay_plan_full_vs_own(self, graph):
+        graph.record("load_10x_h5", {"filename": "test.h5"}, branch="main")
+        graph.record("pca", {"n_comps": 50}, branch="main")
+        graph.fork_branch("alt", from_branch="main")
+        graph.record("leiden_clustering", {"resolution": 0.5}, branch="alt")
+
+        plan_full = graph.replay_plan("alt", full=True)
+        plan_own = graph.replay_plan("alt", full=False)
+
+        assert len(plan_full) == 3  # load + pca + leiden
+        assert len(plan_own) == 1   # just leiden
+        assert plan_full[0][0] == "load_10x_h5"
+        assert plan_full[-1][0] == "leiden_clustering"
+
+
+class TestPromoteBranch:
+    def test_promote_and_export(self, graph):
+        graph.record("load_10x_h5", {"filename": "test.h5"}, branch="main")
+        graph.record("pca", {"n_comps": 50}, branch="main")
+        graph.fork_branch("final", from_branch="main")
+        graph.record("leiden_clustering", {"resolution": 1.0}, branch="final")
+
+        assert graph.promoted_branch is None
+
+        graph.promote_branch("final")
+        assert graph.promoted_branch == "final"
+
+        # export_plan should give the full chain for the promoted branch
+        plan = graph.export_plan()
+        assert len(plan) == 3
+        assert plan[-1][0] == "leiden_clustering"
+
+    def test_promote_survives_roundtrip(self, tmp_dir):
+        g1 = ProvenanceGraph(tmp_dir)
+        g1.record("pca", {"n_comps": 50}, branch="main")
+        g1.fork_branch("final", from_branch="main")
+        g1.record("leiden_clustering", {"resolution": 1.0}, branch="final")
+        g1.promote_branch("final")
+        g1.end_session()
+
+        g2 = ProvenanceGraph(tmp_dir)
+        assert g2.promoted_branch == "final"
+
+    def test_export_falls_back_to_main(self, graph):
+        graph.record("pca", {"n_comps": 50})
+        plan = graph.export_plan()
+        assert len(plan) == 1  # main's single step
+
+    def test_promote_nonexistent_raises(self, graph):
+        with pytest.raises(ValueError, match="does not exist"):
+            graph.promote_branch("nonexistent")
