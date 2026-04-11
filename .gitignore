@@ -35,3 +35,6 @@ Thumbs.db
 # pi auth (personal credentials)
 .pi/auth.json
 .pi/bin/
+
+# Build artifacts
+*.egg-info/
