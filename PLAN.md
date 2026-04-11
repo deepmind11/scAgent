@@ -176,18 +176,27 @@ Skills to create:
 ### Chunk 5: State Manager (Branching)
 **Goal:** AnnData snapshot save/load with content-addressed storage and branching.
 
-- [ ] `scagent/state.py` — StateManager class
-  - `save_snapshot(adata, step_name) -> hash`
-  - `load_snapshot(hash) -> adata`
-  - `create_branch(name, from_hash)`
-  - `switch_branch(name)`
-  - `list_branches()`
-  - `current_state() -> hash, step_name, branch`
-- [ ] Storage at `.scagent/branches/{name}/states/{hash}.h5ad`
-- [ ] HEAD pointer file per branch
-- [ ] Skill or REPL commands: `/branch create`, `/branch switch`, `/branch list`, `/branch compare`
+- [x] `scagent/state.py` — StateManager class (~400 LOC)
+  - `save_snapshot(adata, step_name) -> hash` (content-addressed, 8-char SHA-256)
+  - `load_snapshot(branch) -> AnnData` / `load_snapshot_by_hash(hash)`
+  - `create_branch(name, from_branch)` — snapshots fork point, copies to new branch
+  - `switch_branch(name) -> AnnData` — saves dirty state, loads target HEAD
+  - `delete_branch(name)` — with child branch protection + force flag
+  - `list_branches() -> list[BranchInfo]` — name, step, parent, disk size
+  - `current_state() -> StateInfo` — hash, step, branch, dirty flag
+  - `mark_dirty(step_name)` — track unsaved in-memory changes
+  - `save_on_exit()` / `load_on_start()` — session persistence
+  - `gc_snapshots()` — remove unreferenced snapshots, disk warning at 10 GB
+- [x] Lazy checkpointing: saves only on fork, switch, session end, explicit save
+- [x] Storage at `.scagent/branches/{name}/snapshots/{hash}.h5ad`
+- [x] HEAD pointer + parent.json per branch
+- [x] `.pi/skills/branching/SKILL.md` — teaches agent when/how to branch
+- [x] `tests/test_state.py` — 27 unit tests
+- [x] `tests/test_state_integration.py` — real PBMC branching (main vs high_res)
 
 **Deliverable:** Researcher can fork analysis at any point, try different parameters, switch back. State is persisted on disk.
+
+**Status: ✅ DONE** — 67 unit tests + 1 integration test pass. Real PBMC branching: main (21 clusters) vs high_res (33 clusters), 3 snapshots, correct state switching.
 
 ---
 
