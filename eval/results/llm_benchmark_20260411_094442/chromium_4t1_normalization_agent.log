@@ -1,0 +1,19 @@
+Here's a summary of what I did:
+
+1. **Loaded the data**: 6,420 cells × 19,918 genes, raw counts (max 8,268).
+
+2. **Identified the cell with highest raw Mrc1 count**: Cell `CACACTCCAGACAGGT` (index 1595) with a raw count of **102**.
+
+3. **Applied global scale log normalization**: 
+   - `sc.pp.normalize_total(adata, target_sum=1e4)` — CPM-like normalization to 10K
+   - `sc.pp.log1p(adata)` — log(1+x) transform
+
+4. **Applied z-score scaling**: `sc.pp.scale(adata)` — zero-mean, unit-variance per gene.
+
+5. **Reported the final normalized Mrc1 value** for that cell: **2.2501**.
+
+<EVAL_ANSWER>
+{
+  "gene_value": 2.2501
+}
+</EVAL_ANSWER>

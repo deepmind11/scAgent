@@ -1,0 +1,6 @@
+{
+  "eval_id": "chromium_4t1_normalization",
+  "passed": true,
+  "duration_s": 29,
+  "reasoning": "Numeric Tolerance Check: PASS\n\n  + gene_value: 2.2501 vs 2.3 (error: 0.0499)"
+}

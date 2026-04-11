@@ -1,0 +1,6 @@
+{
+  "eval_id": "chromium_trajectory_01_caf_terminal_marker_recovery",
+  "passed": false,
+  "duration_s": 234,
+  "reasoning": "Marker Gene Precision/Recall: FAIL\nAnswer field: top_marker_genes\n\n  + Precision@20: 0.050 (threshold: 0.000)\n  x Recall@20: 0.500 (threshold: 1.000)\n\nTrue Positives (1):\n  + Ly6c1\n\nFalse Negatives (1"
+}

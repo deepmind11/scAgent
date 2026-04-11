@@ -1,0 +1,6 @@
+{
+  "eval_id": "chromium_qc_4T1_filter_cells",
+  "passed": false,
+  "duration_s": 182,
+  "reasoning": "Numeric Tolerance Check: FAIL\n\n  x cells_after_filtering: 6017 vs 6420 (error: 403.0000)\n\nFailures:\n  - cells_after_filtering: 6017 vs 6420 (error: 403.00, tolerance: 100)"
+}

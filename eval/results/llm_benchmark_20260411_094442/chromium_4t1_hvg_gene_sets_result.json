@@ -1,0 +1,6 @@
+{
+  "eval_id": "chromium_4t1_hvg_gene_sets",
+  "passed": false,
+  "duration_s": 135,
+  "reasoning": "Marker Gene Precision/Recall: FAIL\nAnswer field: top_marker_genes\n\n  + Precision@2000: 0.000 (threshold: 0.000)\n  x Recall@2000: 0.000 (threshold: 0.700)\n\nTrue Positives (0):\n  None\n\nFalse Negatives ("
+}

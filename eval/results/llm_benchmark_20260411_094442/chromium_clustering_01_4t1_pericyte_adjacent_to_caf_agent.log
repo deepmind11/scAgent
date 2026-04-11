@@ -1,0 +1,20 @@
+Here's a summary of the analysis:
+
+## Analysis Summary
+
+1. **Data inspection**: The dataset has 6,420 cells × 19,918 genes with 11 annotated cell types. `adata.X` was already preprocessed (scaled, max=10, min≈-9.6), with raw counts stored in `adata.layers['raw_counts']`. There are **49 Pericytes** in the dataset.
+
+2. **Standard preprocessing → PCA**: Since X was already preprocessed (normalized, log-transformed, scaled), I computed PCA (50 components) directly on it.
+
+3. **kNN graph construction**: Built a k=15 nearest-neighbor graph in PCA space using scanpy's default settings.
+
+4. **Pericyte adjacency analysis**: 
+   - 49 pericytes × 14 neighbors = **686 total kNN edges** from pericytes
+   - 678 edges (98.8%) → other Pericytes (tight self-clustering)
+   - **6 edges → CAFs** (fraction = 6/686 ≈ 0.00875)
+   - **2 edges → M2-like Macrophages** (fraction = 2/686 ≈ 0.00292)
+   - 0 edges to all other non-pericyte types
+
+5. **Relative adjacency score**: CAF fraction / max other non-pericyte fraction = 0.00875 / 0.00292 = **3.0**
+
+<EVAL_ANSWER>{"pericyte_caf_relative_pca_knn_adjacency": 3.0}</EVAL_ANSWER>

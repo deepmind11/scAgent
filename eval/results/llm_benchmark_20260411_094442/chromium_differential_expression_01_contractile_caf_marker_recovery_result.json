@@ -1,0 +1,6 @@
+{
+  "eval_id": "chromium_differential_expression_01_contractile_caf_marker_recovery",
+  "passed": true,
+  "duration_s": 106,
+  "reasoning": "Marker Gene Precision/Recall: PASS\nAnswer field: top_marker_genes\n\n  + Precision@50: 0.140 (threshold: 0.000)\n  + Recall@50: 0.778 (threshold: 0.670)\n\nTrue Positives (7):\n  + Cnn2\n  + Cnn3\n  + Tagln\n "
+}

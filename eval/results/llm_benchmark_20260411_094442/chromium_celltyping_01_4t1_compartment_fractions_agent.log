@@ -1,0 +1,28 @@
+Here's a summary of the analysis:
+
+## Cell Compartment Annotation — 4T1 Tumor Dataset
+
+**Dataset:** 6,420 cells × 19,918 genes (pre-normalized, scaled data from a 4T1 mouse tumor)
+
+### Approach
+Used `scanpy.tl.score_genes()` to score each cell against canonical marker gene panels for the three compartments:
+
+| Compartment | Markers Used |
+|---|---|
+| **Immune** | Ptprc (CD45), Cd3d, Cd3e, Cd8a, Cd4, Nkg7, Cd79a, Cd19, Lyz2, Csf1r, Itgam, Cd68, Cd14, Fcgr3, Cd2, Cd7 |
+| **Epithelial/Cancer** | Epcam, Krt18, Krt19, Krt8, Krt14, Cdh1, Krt7 |
+| **CAF** | Col1a1, Col1a2, Col3a1, Dcn, Fap, Acta2, Pdgfra, Pdgfrb, Vim, Thy1 |
+
+Each cell was assigned to the compartment with the highest score.
+
+### Results
+
+| Compartment | Cells | Percentage |
+|---|---|---|
+| **Immune** | 3,731 | 58.12% |
+| **Epithelial/Cancer** | 1,792 | 27.91% |
+| **CAF** | 897 | 13.97% |
+
+This is consistent with the expected composition of a 4T1 tumor microenvironment — predominantly immune infiltrate, with a substantial cancer cell fraction and a smaller CAF population.
+
+<EVAL_ANSWER>{"cell_type_distribution": {"Immune": 58.12, "Epithelial/Cancer": 27.91, "CAF": 13.97}}</EVAL_ANSWER>

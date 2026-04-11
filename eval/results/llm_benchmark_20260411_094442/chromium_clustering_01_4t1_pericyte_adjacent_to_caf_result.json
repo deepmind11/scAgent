@@ -1,0 +1,6 @@
+{
+  "eval_id": "chromium_clustering_01_4t1_pericyte_adjacent_to_caf",
+  "passed": true,
+  "duration_s": 132,
+  "reasoning": "Numeric Tolerance Check: PASS\n\n  + pericyte_caf_relative_pca_knn_adjacency: 3.0 (minimum: 1.1)"
+}

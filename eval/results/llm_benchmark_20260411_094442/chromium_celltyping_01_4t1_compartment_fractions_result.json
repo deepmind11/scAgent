@@ -1,0 +1,6 @@
+{
+  "eval_id": "chromium_celltyping_01_4t1_compartment_fractions",
+  "passed": true,
+  "duration_s": 60,
+  "reasoning": "Distribution Comparison: PASS\n\nCell type percentages (tolerance: +/-10.0%):\n  + CAF: 13.97% vs 8.00% (diff: 5.97%)\n  + Epithelial/Cancer: 27.91% vs 24.50% (diff: 3.41%)\n  + Immune: 58.12% vs 66.40% (d"
+}

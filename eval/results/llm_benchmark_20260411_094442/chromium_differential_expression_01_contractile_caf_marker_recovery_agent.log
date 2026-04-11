@@ -1,0 +1,13 @@
+<EVAL_ANSWER>{"top_marker_genes": ["Lrrc15", "Tpm2", "Tnc", "Spp1", "Spon1", "Tagln", "Ptk7", "Acta2", "Gng11", "Csrp1", "Inhba", "Sdc1", "Uck2", "Myl12a", "Tpm1", "Myl6", "Lgals1", "Col6a3", "Cald1", "Wnt5a", "Tmsb4x", "Postn", "Tpm4", "Tmem119", "Pmepa1", "Cnn2", "Cpxm2", "Serpine2", "Nudt4", "Mfge8", "Sh3bgrl3", "Fam198b", "Col7a1", "Col12a1", "Moxd1", "Pla2g7", "Cnn3", "Brinp3", "Ncam1", "Olfml3", "Ptprn", "Actn1", "Itgb1", "Ctsc", "Dkk3", "Stra6", "Loxl3", "Wisp1", "Cd53", "Mical2"]}</EVAL_ANSWER>
+
+## Summary
+
+**Analysis steps:**
+
+1. **Subset CAFs** (536 cells) from the full dataset (6,420 cells)
+2. **PCA** on scaled data using 2,000 HVGs → 30 PCs, then built neighbor graph (20 PCs, 15 neighbors)
+3. **Leiden clustering** at resolution 0.6 → exactly 6 subclusters
+4. **Identified contractile subcluster** — Cluster 0 (131 cells) scored highest on a panel of 24 contractile/cytoskeletal markers (Acta2, Tagln, Tpm1/2, Myl9, Cald1, etc.) with a score of 1.26 vs the next highest at 0.90
+5. **Differential expression** — Wilcoxon rank-sum test on log-normalized counts (CP10K + log1p) comparing cluster 0 vs all other CAFs
+
+**Top contractile markers confirmed in DE results:** Tagln, Acta2, Tpm1/2, Myl12a, Csrp1, Cald1, Cnn2/3, Actn1 — classic myofibroblast/contractile CAF genes, along with ECM genes (Tnc, Postn, Col7a1, Col12a1) consistent with myCAF identity.

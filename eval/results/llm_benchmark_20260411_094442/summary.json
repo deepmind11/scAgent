@@ -1,0 +1,10 @@
+{
+  "timestamp": "2026-04-11T16:59:20Z",
+  "adapter": "llm_scagent_pi",
+  "model": "claude-opus-4-6",
+  "passed": 4,
+  "failed": 3,
+  "errors": 0,
+  "total": 7,
+  "score_pct": 57.1
+}

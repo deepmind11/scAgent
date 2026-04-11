@@ -1,0 +1,24 @@
+<EVAL_ANSWER>
+{
+  "top_marker_genes": ["Clec3b", "Dpt", "Gsn", "Spon1", "Htra3", "Cd34", "Pi16", "Col14a1", "Tnxb", "Ly6c1", "Itih5", "Col12a1", "Cxcl14", "Olfml3", "Inhba", "Pkm", "Igfbp7", "Sdc1", "Col15a1", "Tnc"]
+}
+</EVAL_ANSWER>
+
+## Summary
+
+**Data:** 1,689 cells × 20,574 genes (mouse, raw counts, no metadata).
+
+**Preprocessing:**
+- Filtered genes (min 3 cells), normalized (CP10K + log1p), selected 2,000 HVGs (Seurat flavor), PCA (50 PCs), neighbor graph (30 PCs)
+- Removed 25 epithelial cells (Krt8+/Epcam+ cluster 8)
+
+**Trajectory inference:**
+- Computed diffusion map on 1,664 CAF cells
+- DC2 captured the dominant myCAF↔iCAF axis (separation = 0.056)
+- Rooted DPT at the iCAF extreme (most negative DC2)
+
+**Terminal groups identified:**
+- **Terminal A (iCAF end):** 167 cells at DPT ≤ 10th percentile — high Clec3b, Dpt, Gsn, Ly6c1, Pi16, Cd34
+- **Terminal B (myCAF end):** 167 cells at DPT ≥ 90th percentile — high Spon1, Col12a1, Inhba, Lrrc15, Tagln, Acta2
+
+**Top 20 marker genes** (by Wilcoxon rank-sum score, balanced from both terminals): Clec3b, Dpt, Gsn, Spon1, Htra3, Cd34, Pi16, Col14a1, Tnxb, Ly6c1, Itih5, Col12a1, Cxcl14, Olfml3, Inhba, Pkm, Igfbp7, Sdc1, Col15a1, Tnc.
