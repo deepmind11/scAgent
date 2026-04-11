@@ -78,10 +78,15 @@ for EVAL_ID in "${EVALS[@]}"; do
 
   # Resolve cached data path
   DATA_FILE=$(python3 -c "
-import sys
+import sys, os, io
 sys.path.insert(0, '$HOME/Projects/scbench-eval')
+# Suppress download_single_dataset's print output
+old_stdout = sys.stdout
+sys.stdout = io.StringIO()
 from latch_eval_tools.harness import download_single_dataset
-print(download_single_dataset('$DATA_NODE', cache_name='.eval_cache'))
+path = download_single_dataset('$DATA_NODE', cache_name='.eval_cache')
+sys.stdout = old_stdout
+print(path)
 " 2>/dev/null)
 
   if [ ! -f "$DATA_FILE" ]; then
