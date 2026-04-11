@@ -78,11 +78,14 @@ def test_leiden(adata):
 
 def test_sweep(adata):
     print("=== test_sweep ===")
-    result = sweep_resolution(adata, random_state=0)
-    m = result["metrics"]["resolution_to_clusters"]
+    result = sweep_resolution(adata, random_state=0, plot_dir="data/working/plots")
+    m = result["metrics"]
     print(f"  ✓ Resolution sweep:")
-    for res, n in sorted(m.items(), key=lambda x: float(x[0])):
-        print(f"    res={res} → {n} clusters")
+    for row in m["sweep"]:
+        print(f"    res={row['resolution']} → {row['n_clusters']} clusters, "
+              f"silhouette={row['silhouette']}, stability={row['stability_ari']}")
+    print(f"  ★ Recommended: {m['recommended_resolution']}")
+    print(f"    {m['recommendation_note']}")
 
 
 def test_seed_sensitivity(adata):

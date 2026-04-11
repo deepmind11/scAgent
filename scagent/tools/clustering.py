@@ -107,31 +107,59 @@ def sweep_resolution(
     *,
     resolutions: list[float] | None = None,
     random_state: int = 0,
+    n_seeds_stability: int = 5,
     plot_dir: str | None = None,
 ) -> dict:
-    """Run Leiden at multiple resolutions and report cluster counts.
+    """Run Leiden at multiple resolutions with clustering quality metrics.
+
+    For each resolution, computes:
+    - **Number of clusters**
+    - **Silhouette score** — how well-separated clusters are in PCA space
+      (range -1 to 1; higher is better)
+    - **Calinski-Harabasz index** — ratio of between- to within-cluster
+      variance (higher is better; not comparable across datasets)
+    - **Stability (mean ARI)** — consistency across random seeds
+      (range 0 to 1; ≥0.9 is stable)
+
+    Recommends the resolution that maximises silhouette score among
+    resolutions with stability ≥ 0.9. If no resolution is stable, falls
+    back to the highest silhouette score and warns.
 
     Each resolution gets its own key: ``adata.obs['leiden_{res}']``.
-    Does NOT pick a resolution — that is the user's decision.
 
     Parameters
     ----------
     resolutions
-        List of resolutions to try. Defaults to
+        Resolutions to try. Defaults to
         ``[0.3, 0.5, 0.8, 1.0, 1.5, 2.0]``.
     random_state
-        Same seed for every resolution — makes comparison fair.
+        Base seed — used for the primary clustering at each resolution.
+    n_seeds_stability
+        Number of seeds for the stability check at each resolution.
+        Set to 0 to skip stability analysis (faster).
     plot_dir
-        Directory for the resolution-vs-clusters plot.
+        Directory for the sweep summary plot.
 
     Returns
     -------
-    Result dict with a table of resolution → n_clusters.
+    Result dict with per-resolution metrics and a recommended resolution.
     """
+    from sklearn.metrics import (
+        silhouette_score,
+        calinski_harabasz_score,
+        adjusted_rand_score,
+    )
+
     if resolutions is None:
         resolutions = [0.3, 0.5, 0.8, 1.0, 1.5, 2.0]
 
-    sweep_results = {}
+    # Get PCA embedding for metric computation
+    if "X_pca" not in adata.obsm:
+        raise ValueError("PCA not found. Run run_pca() before sweep_resolution().")
+    X_pca = adata.obsm["X_pca"]
+
+    sweep_rows = []
+
     for res in resolutions:
         key = f"leiden_{res}"
         sc.tl.leiden(
@@ -141,16 +169,87 @@ def sweep_resolution(
             random_state=random_state,
             n_iterations=-1,
         )
-        n_clusters = adata.obs[key].nunique()
-        sweep_results[res] = n_clusters
+        labels = adata.obs[key]
+        n_clusters = labels.nunique()
+
+        # --- quality metrics (need ≥2 clusters) ---
+        if n_clusters >= 2:
+            labels_int = labels.astype(int).values
+            sil = float(silhouette_score(X_pca, labels_int, sample_size=min(5000, len(labels_int)), random_state=random_state))
+            ch = float(calinski_harabasz_score(X_pca, labels_int))
+        else:
+            sil = float("nan")
+            ch = float("nan")
+
+        # --- stability across seeds ---
+        mean_ari = float("nan")
+        if n_seeds_stability >= 2 and n_clusters >= 2:
+            all_labels = []
+            seeds = list(range(n_seeds_stability))
+            for s in seeds:
+                tmp_key = f"_sweep_stab_{res}_{s}"
+                sc.tl.leiden(
+                    adata, resolution=res, key_added=tmp_key,
+                    random_state=s, n_iterations=-1,
+                )
+                all_labels.append(adata.obs[tmp_key].values.copy())
+                del adata.obs[tmp_key]
+
+            ari_vals = []
+            for i in range(len(seeds)):
+                for j in range(i + 1, len(seeds)):
+                    ari_vals.append(adjusted_rand_score(all_labels[i], all_labels[j]))
+            mean_ari = float(np.mean(ari_vals))
+
+        sweep_rows.append({
+            "resolution": res,
+            "n_clusters": n_clusters,
+            "silhouette": round(sil, 4) if not np.isnan(sil) else None,
+            "calinski_harabasz": round(ch, 1) if not np.isnan(ch) else None,
+            "stability_ari": round(mean_ari, 4) if not np.isnan(mean_ari) else None,
+        })
+
+    # --- recommend ---
+    # Prefer: stable (ARI ≥ 0.9) AND highest silhouette
+    stable_rows = [r for r in sweep_rows if r["stability_ari"] is not None and r["stability_ari"] >= 0.9 and r["silhouette"] is not None]
+    if stable_rows:
+        best = max(stable_rows, key=lambda r: r["silhouette"])
+        recommendation_note = (
+            f"Resolution {best['resolution']} recommended: highest silhouette "
+            f"({best['silhouette']:.3f}) among stable resolutions (ARI ≥ 0.9)."
+        )
+    else:
+        # Fallback: highest silhouette regardless of stability
+        valid_rows = [r for r in sweep_rows if r["silhouette"] is not None]
+        if valid_rows:
+            best = max(valid_rows, key=lambda r: r["silhouette"])
+            recommendation_note = (
+                f"Resolution {best['resolution']} has the highest silhouette "
+                f"({best['silhouette']:.3f}), but NO resolution achieved ARI ≥ 0.9. "
+                "Clustering may be fragile — inspect carefully."
+            )
+        else:
+            best = sweep_rows[0]
+            recommendation_note = "Could not compute quality metrics."
+
+    recommended = best["resolution"]
 
     plots = []
     if plot_dir is not None:
-        plots = _plot_sweep(sweep_results, plot_dir)
+        plots = _plot_sweep_metrics(sweep_rows, recommended, plot_dir)
+
+    warnings = []
+    if all(r.get("stability_ari") is not None and r["stability_ari"] < 0.9 for r in sweep_rows):
+        warnings.append(
+            "No resolution achieved stable clustering (ARI ≥ 0.9). "
+            "Consider adjusting n_neighbors or inspecting the neighbor graph."
+        )
 
     return {
         "metrics": {
-            "resolution_to_clusters": {str(k): v for k, v in sweep_results.items()},
+            "sweep": sweep_rows,
+            "recommended_resolution": recommended,
+            "recommendation_note": recommendation_note,
         },
         "plots": plots,
         "provenance": {
@@ -158,10 +257,11 @@ def sweep_resolution(
             "parameters": {
                 "resolutions": resolutions,
                 "random_state": random_state,
+                "n_seeds_stability": n_seeds_stability,
                 "mode": "sweep",
             },
         },
-        "warnings": [],
+        "warnings": warnings,
     }
 
 
@@ -251,21 +351,56 @@ def check_seed_sensitivity(
     }
 
 
-def _plot_sweep(sweep_results: dict, plot_dir: str) -> list[str]:
+def _plot_sweep_metrics(
+    sweep_rows: list[dict], recommended: float, plot_dir: str
+) -> list[str]:
     d = Path(plot_dir)
     d.mkdir(parents=True, exist_ok=True)
 
-    resolutions = sorted(sweep_results.keys())
-    n_clusters = [sweep_results[r] for r in resolutions]
+    resolutions = [r["resolution"] for r in sweep_rows]
+    n_clusters = [r["n_clusters"] for r in sweep_rows]
+    silhouettes = [r["silhouette"] for r in sweep_rows]
+    stabilities = [r["stability_ari"] for r in sweep_rows]
 
-    fig, ax = plt.subplots(figsize=(7, 4))
-    ax.plot(resolutions, n_clusters, "o-", markersize=6)
+    fig, axes = plt.subplots(1, 3, figsize=(15, 4))
+
+    # Panel 1: n_clusters
+    ax = axes[0]
+    ax.plot(resolutions, n_clusters, "o-", markersize=6, color="steelblue")
     for r, n in zip(resolutions, n_clusters):
         ax.annotate(str(n), (r, n), textcoords="offset points",
                     xytext=(0, 8), ha="center", fontsize=9)
+    ax.axvline(recommended, color="red", linestyle="--", alpha=0.5)
     ax.set_xlabel("Resolution")
     ax.set_ylabel("Number of clusters")
-    ax.set_title("Leiden Resolution Sweep")
+    ax.set_title("Cluster Count")
+
+    # Panel 2: silhouette
+    ax = axes[1]
+    sil_valid = [(r, s) for r, s in zip(resolutions, silhouettes) if s is not None]
+    if sil_valid:
+        ax.plot([x[0] for x in sil_valid], [x[1] for x in sil_valid],
+                "o-", markersize=6, color="forestgreen")
+    ax.axvline(recommended, color="red", linestyle="--", alpha=0.5)
+    ax.set_xlabel("Resolution")
+    ax.set_ylabel("Silhouette Score")
+    ax.set_title("Cluster Separation")
+
+    # Panel 3: stability
+    ax = axes[2]
+    stab_valid = [(r, s) for r, s in zip(resolutions, stabilities) if s is not None]
+    if stab_valid:
+        ax.plot([x[0] for x in stab_valid], [x[1] for x in stab_valid],
+                "o-", markersize=6, color="darkorange")
+    ax.axhline(0.9, color="grey", linestyle=":", alpha=0.7, label="ARI = 0.9 threshold")
+    ax.axvline(recommended, color="red", linestyle="--", alpha=0.5, label=f"recommended ({recommended})")
+    ax.set_xlabel("Resolution")
+    ax.set_ylabel("Mean ARI (stability)")
+    ax.set_title("Seed Stability")
+    ax.set_ylim(0, 1.05)
+    ax.legend(fontsize=8)
+
+    fig.suptitle("Leiden Resolution Sweep", fontsize=14)
     fig.tight_layout()
 
     path = str(d / "leiden_resolution_sweep.png")
