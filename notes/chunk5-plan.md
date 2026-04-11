@@ -372,7 +372,7 @@ Real PBMC dataset branching scenario:
 |---|----------|---------|----------------|
 | 1 | **Hash the .h5ad file or hash in-memory arrays?** | File hash (deterministic, simple), array hash (faster, no temp file) | **File hash.** Guarantees what's on disk matches the hash. Array hashing has float precision and ordering issues. |
 | 2 | **Snapshot on every `record_step` or only on triggers?** | Every step (safe, expensive), triggers only (lazy, efficient) | **Triggers only.** 193MB–1.8GB per save rules out every-step snapshots. |
-| 3 | **How to handle "I want to go back 3 steps on main"?** | Re-run from the last snapshot (replay), keep intermediate snapshots, refuse | **Replay.** Use `replay_plan()` from provenance to re-execute from the last snapshot. Intermediate states are re-derived, not stored. |
+| 3 | **How to handle "I want to go back 3 steps on main"?** | Re-run from the last snapshot (replay), keep intermediate snapshots, refuse | **Branch, then replay.** Always snapshot the current state first (as a branch or auto-save), then replay from provenance to the target step on a new branch. Never rewind in-place — that would discard the current state. The skill should enforce this: "I'll create a branch from step 7 to explore from there. Your current work stays on main." |
 | 4 | **Should `create_branch` auto-switch to the new branch?** | Yes (more intuitive), No (explicit is better) | **No.** Explicit `switch_branch()` after. Keeps operations atomic and predictable. |
 | 5 | **Disk budget: should we warn/refuse when snapshots exceed a threshold?** | Hard limit, soft warning, no limit | **Soft warning** at 10 GB total. Print: "Branches are using X GB. Consider deleting unused branches with `/branch delete`." |
 
