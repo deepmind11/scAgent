@@ -152,15 +152,24 @@ Skills to create:
 ### Chunk 4: Provenance Writer
 **Goal:** Python module that emits PROV-JSONLD after each tool invocation.
 
-- [ ] `scagent/provenance.py` — ProvenanceGraph class
-  - `record_activity(tool_id, params, input_hash, output_hash, duration, user_prompt)`
-  - `serialize() -> PROV-JSONLD dict`
-  - `save(path)` / `load(path)`
+- [x] `scagent/provenance.py` — ProvenanceGraph class + record_step() adapter
+  - `record()` — add activity + entity pair with timestamps, versions, linking
+  - `record_step()` — standalone adapter that extracts provenance from tool result dicts
+  - `serialize()` → W3C PROV-O JSON-LD
+  - `save()` / `load()` — persistence to `.scagent/provenance.jsonld`
+  - `list_activities()`, `get_chain()`, `summary()` — query API
+  - `replay_plan()` → `[(tool_id, params), ...]` for reproduction
   - `diff(branch_a, branch_b)` — compare two provenance chains
-- [ ] Integrate with skills: each skill appends a provenance record after execution
-- [ ] Provenance file stored at `.scagent/provenance.jsonld`
+  - `fork_branch()` — create divergent analysis paths
+  - Handles both dict and (adata, dict) tuple returns from tool wrappers
+- [x] `.pi/skills/provenance/SKILL.md` — teaches agent to record + query provenance
+- [x] `tests/test_provenance.py` — 27 unit tests
+- [x] `tests/test_provenance_integration.py` — full PBMC pipeline (9 steps, 12KB)
+- [x] Provenance file stored at `.scagent/provenance.jsonld`
 
 **Deliverable:** After running an analysis, `.scagent/provenance.jsonld` contains a complete, valid PROV-JSONLD graph. Each step is traceable.
+
+**Status: ✅ DONE** — 28/28 tests pass. Integration test: 9-step pipeline → 12,008 byte provenance file.
 
 ---
 
