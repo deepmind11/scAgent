@@ -1,0 +1,39 @@
+{
+  "tool_id": "pca",
+  "name": "Principal Component Analysis",
+  "category": "dimensionality_reduction",
+  "framework": "scanpy",
+  "function": "sc.pp.pca",
+  "valid_after": ["feature_selection"],
+  "valid_before": ["integration", "neighbor_graph"],
+  "paradigms": ["all"],
+  "parameters": {
+    "n_comps": {
+      "type": "int",
+      "default": 50,
+      "range": [10, 100],
+      "guidance": "Number of principal components to compute. 30-50 is standard. Use elbow plot of variance ratio (sc.pl.pca_variance_ratio) to determine how many PCs capture meaningful variance."
+    },
+    "use_highly_variable": {
+      "type": "bool",
+      "default": true,
+      "guidance": "If true, restrict PCA to highly variable genes only. Should be true after HVG selection."
+    },
+    "svd_solver": {
+      "type": "string",
+      "default": "arpack",
+      "options": ["arpack", "randomized", "lobpcg"],
+      "guidance": "SVD solver. 'arpack' is default and reliable. 'randomized' is faster for large datasets (>50K cells)."
+    }
+  },
+  "outputs": {
+    "cell_embeddings": "adata.obsm['X_pca']",
+    "variance_ratio": "adata.uns['pca']['variance_ratio']",
+    "loadings": "adata.varm['PCs']"
+  },
+  "validation": {
+    "pc1_max_variance": 0.5,
+    "check": "First PC should explain <50% of variance. If it does, it likely reflects a technical artifact (e.g., total counts, cell cycle) rather than biology."
+  },
+  "provenance_captures": ["n_comps", "use_highly_variable", "svd_solver", "total_variance_explained"]
+}

@@ -1,0 +1,42 @@
+{
+  "tool_id": "monocle3_pseudotime",
+  "name": "Monocle 3 Pseudotime Analysis",
+  "category": "trajectory",
+  "framework": "monocle3",
+  "function": "Monocle 3 (R via subprocess)",
+  "valid_after": ["clustering"],
+  "valid_before": [],
+  "paradigms": ["developmental_trajectory"],
+  "parameters": {
+    "root_cell_type": {
+      "type": "string",
+      "default": null,
+      "guidance": "Specify the root/progenitor cell type to anchor pseudotime at 0. If not specified, Monocle picks the root interactively or by heuristic."
+    },
+    "reduction_method": {
+      "type": "string",
+      "default": "UMAP",
+      "options": ["UMAP", "tSNE", "PCA"],
+      "guidance": "Dimensionality reduction to use for trajectory graph learning."
+    },
+    "partition_qval": {
+      "type": "float",
+      "default": 0.05,
+      "guidance": "Q-value threshold for partitioning cells into supergroups."
+    },
+    "use_partition": {
+      "type": "bool",
+      "default": true,
+      "guidance": "If true, learn separate trajectories per partition. Set false to force a single trajectory."
+    }
+  },
+  "outputs": {
+    "pseudotime": "Pseudotime values per cell",
+    "trajectory_graph": "Principal graph with nodes and edges",
+    "branch_points": "Identified branch points in the trajectory"
+  },
+  "validation": {
+    "check": "Pseudotime values should span a reasonable range. Root cells should have pseudotime near 0. Check that trajectory topology matches known biology."
+  },
+  "provenance_captures": ["root_cell_type", "reduction_method", "partition_qval", "use_partition", "n_trajectories", "n_branch_points"]
+}

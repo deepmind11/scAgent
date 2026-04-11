@@ -1,0 +1,50 @@
+{
+  "tool_id": "load_10x_h5",
+  "name": "Load 10x HDF5 Matrix",
+  "category": "data_loading",
+  "framework": "scanpy",
+  "function": "sc.read_10x_h5",
+  "valid_after": [],
+  "valid_before": [
+    "qc"
+  ],
+  "paradigms": [
+    "all"
+  ],
+  "parameters": {
+    "filename": {
+      "type": "string",
+      "required": true,
+      "guidance": "Path to the filtered_feature_bc_matrix.h5 file from Cell Ranger output."
+    },
+    "genome": {
+      "type": "string",
+      "default": null,
+      "guidance": "Genome annotation to use. Required only for multi-genome references."
+    },
+    "gex_only": {
+      "type": "bool",
+      "default": true,
+      "guidance": "If true, only load gene expression features (exclude antibody capture, CRISPR, etc.)."
+    }
+  },
+  "outputs": {
+    "adata": "AnnData object with raw counts in adata.X",
+    "n_obs": "Number of cells (barcodes)",
+    "n_vars": "Number of genes (features)"
+  },
+  "validation": {
+    "n_obs_gt": 0,
+    "n_vars_gt": 0,
+    "check_duplicate_var_names": true,
+    "check": "Call adata.var_names_make_unique() if duplicate gene names detected."
+  },
+  "provenance_captures": [
+    "filename",
+    "file_hash",
+    "n_obs",
+    "n_vars",
+    "genome",
+    "gex_only"
+  ]
+}

@@ -1,0 +1,51 @@
+{
+  "tool_id": "gsea",
+  "name": "Gene Set Enrichment Analysis",
+  "category": "enrichment",
+  "framework": "gseapy",
+  "function": "gseapy.prerank",
+  "valid_after": ["differential_expression"],
+  "valid_before": [],
+  "paradigms": ["all"],
+  "parameters": {
+    "gene_sets": {
+      "type": "string",
+      "default": "MSigDB_Hallmark_2020",
+      "guidance": "Gene set database. Common choices: 'MSigDB_Hallmark_2020' (50 cancer/immune hallmarks), 'GO_Biological_Process_2023', 'KEGG_2021_Human', 'Reactome_2022'. Can also be a path to a .gmt file."
+    },
+    "ranking_metric": {
+      "type": "string",
+      "default": "log2fc",
+      "guidance": "How to rank genes. Use log2 fold change from DE results. Alternatively, use -log10(pval) * sign(logfc) for a combined metric."
+    },
+    "permutation_num": {
+      "type": "int",
+      "default": 1000,
+      "range": [100, 10000],
+      "guidance": "Number of permutations for significance testing. 1000 is standard."
+    },
+    "min_size": {
+      "type": "int",
+      "default": 15,
+      "guidance": "Minimum gene set size to include in analysis."
+    },
+    "max_size": {
+      "type": "int",
+      "default": 500,
+      "guidance": "Maximum gene set size."
+    },
+    "fdr_threshold": {
+      "type": "float",
+      "default": 0.25,
+      "guidance": "GSEA traditionally uses a 0.25 FDR cutoff, which is more permissive than standard DE thresholds. This is by design — GSEA detects coordinated changes across gene sets."
+    }
+  },
+  "outputs": {
+    "enrichment_results": "DataFrame with term, NES (normalized enrichment score), pval, fdr per gene set",
+    "n_significant_terms": "int"
+  },
+  "validation": {
+    "check": "At least some significant terms (FDR < 0.25). If no significant terms, the biological signal may be weak or the wrong gene sets were used."
+  },
+  "provenance_captures": ["gene_sets", "ranking_metric", "permutation_num", "min_size", "max_size", "fdr_threshold", "n_significant_terms"]
+}

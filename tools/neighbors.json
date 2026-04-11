@@ -1,0 +1,55 @@
+{
+  "tool_id": "neighbor_graph",
+  "name": "K-Nearest Neighbor Graph",
+  "category": "neighbor_graph",
+  "framework": "scanpy",
+  "function": "sc.pp.neighbors",
+  "valid_after": ["pca", "integration"],
+  "valid_before": ["clustering", "umap"],
+  "paradigms": ["all"],
+  "parameters": {
+    "n_neighbors": {
+      "type": "int",
+      "default": 15,
+      "range": [5, 100],
+      "guidance": "Number of nearest neighbors. 10-15 for fine-grained resolution, 20-30 for coarser structure. Sciaraffa et al. 2025 found k=10 optimal when used with high-resolution clustering (resolution=2.0)."
+    },
+    "n_pcs": {
+      "type": "int",
+      "default": 50,
+      "range": [10, 100],
+      "guidance": "Number of PCs to use. Should match or be less than the n_comps used in the PCA step."
+    },
+    "metric": {
+      "type": "string",
+      "default": "cosine",
+      "options": ["cosine", "euclidean", "manhattan"],
+      "guidance": "Distance metric. Cosine is preferred (Sciaraffa et al. 2025). Euclidean also works well with UMAP method."
+    },
+    "use_rep": {
+      "type": "string",
+      "default": "X_pca",
+      "guidance": "Which representation to use. Use 'X_pca_harmony' after Harmony integration, 'X_scVI' after scVI, 'X_scanorama' after Scanorama."
+    },
+    "method": {
+      "type": "string",
+      "default": "umap",
+      "options": ["umap", "gauss"],
+      "guidance": "Method for computing connectivities. 'umap' is preferred (Sciaraffa et al. 2025). 'gauss' computes Gaussian kernel-based connectivities."
+    },
+    "random_state": {
+      "type": "int",
+      "default": 0,
+      "guidance": "Random seed for reproducibility."
+    }
+  },
+  "outputs": {
+    "connectivities": "adata.obsp['connectivities']",
+    "distances": "adata.obsp['distances']",
+    "params": "adata.uns['neighbors']"
+  },
+  "validation": {
+    "check": "Connectivities matrix should be sparse and non-empty. All cells should have at least 1 neighbor."
+  },
+  "provenance_captures": ["n_neighbors", "n_pcs", "metric", "use_rep", "method", "random_state"]
+}

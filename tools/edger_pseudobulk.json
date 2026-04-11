@@ -1,0 +1,77 @@
+{
+  "tool_id": "edger_pseudobulk",
+  "name": "edgeR Pseudobulk Differential Expression",
+  "category": "differential_expression",
+  "framework": "edger",
+  "function": "Pseudobulk aggregation + edgeR (R via subprocess)",
+  "valid_after": [
+    "annotation"
+  ],
+  "valid_before": [
+    "enrichment"
+  ],
+  "paradigms": [
+    "disease_vs_healthy",
+    "temporal_longitudinal",
+    "perturbation_screen"
+  ],
+  "parameters": {
+    "cell_type_key": {
+      "type": "string",
+      "required": true,
+      "guidance": "obs column with cell type labels."
+    },
+    "sample_key": {
+      "type": "string",
+      "required": true,
+      "guidance": "obs column identifying biological samples/donors."
+    },
+    "condition_key": {
+      "type": "string",
+      "required": true,
+      "guidance": "obs column with condition labels."
+    },
+    "min_cells_per_pseudobulk": {
+      "type": "int",
+      "default": 10,
+      "range": [
+        5,
+        50
+      ],
+      "guidance": "Minimum cells to form a valid pseudobulk sample."
+    },
+    "test_method": {
+      "type": "string",
+      "default": "QLF",
+      "options": [
+        "QLF",
+        "LRT"
+      ],
+      "guidance": "Quasi-likelihood F-test (QLF) is preferred for small sample sizes typical in scRNA-seq. LRT (likelihood ratio test) is an alternative."
+    },
+    "fdr_threshold": {
+      "type": "float",
+      "default": 0.05,
+      "guidance": "FDR significance threshold."
+    }
+  },
+  "outputs": {
+    "de_results": "DataFrame per cell type with gene, logFC, PValue, FDR",
+    "n_de_genes": "Number of significant DE genes per cell type"
+  },
+  "validation": {
+    "min_replicates": 2,
+    "check": "At least 2 biological replicates per condition per cell type."
+  },
+  "notes": "Same critical pseudobulk requirement as DESeq2. edgeR QLF-test is slightly more conservative than DESeq2 for small sample sizes and may be preferred when n < 5 per condition.",
+  "provenance_captures": [
+    "cell_type_key",
+    "sample_key",
+    "condition_key",
+    "min_cells_per_pseudobulk",
+    "test_method",
+    "fdr_threshold",
+    "n_cell_types_tested",
+    "n_samples_per_condition"
+  ]
+}

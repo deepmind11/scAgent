@@ -1,0 +1,55 @@
+{
+  "tool_id": "scvi_integration",
+  "name": "scVI Integration",
+  "category": "integration",
+  "framework": "scvi-tools",
+  "function": "scvi.model.SCVI",
+  "status": "optional",
+  "valid_after": ["feature_selection"],
+  "valid_before": ["neighbor_graph"],
+  "paradigms": ["all"],
+  "parameters": {
+    "batch_key": {
+      "type": "string",
+      "required": true,
+      "guidance": "The obs column containing batch labels."
+    },
+    "n_latent": {
+      "type": "int",
+      "default": 10,
+      "range": [5, 30],
+      "guidance": "Dimensionality of the latent space. 10 is standard. Higher values for more complex datasets."
+    },
+    "n_layers": {
+      "type": "int",
+      "default": 1,
+      "range": [1, 3],
+      "guidance": "Number of hidden layers in the encoder/decoder."
+    },
+    "n_hidden": {
+      "type": "int",
+      "default": 128,
+      "range": [64, 256],
+      "guidance": "Number of nodes per hidden layer."
+    },
+    "max_epochs": {
+      "type": "int",
+      "default": 400,
+      "guidance": "Maximum training epochs. Use early stopping — training usually converges well before 400."
+    },
+    "gene_likelihood": {
+      "type": "string",
+      "default": "zinb",
+      "options": ["zinb", "nb", "poisson"],
+      "guidance": "Gene likelihood model. ZINB (zero-inflated negative binomial) is default and handles dropout well."
+    }
+  },
+  "outputs": {
+    "latent_embedding": "adata.obsm['X_scVI']"
+  },
+  "validation": {
+    "check": "Training loss should converge. Inspect training curve for signs of overfitting."
+  },
+  "notes": "scVI operates on raw counts (not log-normalized). It jointly models batch effects and biological variation. Generally produces better integration than Harmony for complex batch structures, but is slower and requires more tuning.",
+  "provenance_captures": ["batch_key", "n_latent", "n_layers", "n_hidden", "max_epochs", "gene_likelihood", "final_loss"]
+}

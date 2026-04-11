@@ -1,0 +1,74 @@
+{
+  "tool_id": "filter_cells",
+  "name": "Cell QC Filtering",
+  "category": "qc",
+  "framework": "scanpy",
+  "function": "sc.pp.calculate_qc_metrics + sc.pp.filter_cells",
+  "valid_after": [
+    "data_loading"
+  ],
+  "valid_before": [
+    "normalization",
+    "qc"
+  ],
+  "paradigms": [
+    "all"
+  ],
+  "parameters": {
+    "min_genes": {
+      "type": "int",
+      "default": 200,
+      "range": [
+        100,
+        500
+      ],
+      "guidance": "Minimum number of genes expressed per cell. 200 is standard for most tissues."
+    },
+    "max_genes": {
+      "type": "int",
+      "default": 5000,
+      "range": [
+        2000,
+        10000
+      ],
+      "guidance": "Maximum genes per cell. Cells above this are likely doublets. Adjust based on the distribution \u2014 use the inflection point."
+    },
+    "max_pct_mito": {
+      "type": "float",
+      "default": 10.0,
+      "range": [
+        5.0,
+        30.0
+      ],
+      "guidance": "Maximum percentage mitochondrial reads. Tissue-dependent: 5% for clean PBMCs, 10-15% for solid tissues, up to 20% for heart or kidney. Always inspect the distribution first."
+    },
+    "min_counts": {
+      "type": "int",
+      "default": null,
+      "range": [
+        200,
+        2000
+      ],
+      "guidance": "Minimum total UMI counts per cell. Optional \u2014 min_genes usually suffices."
+    }
+  },
+  "outputs": {
+    "filtered_adata": "AnnData with low-quality cells removed",
+    "cells_before": "int",
+    "cells_after": "int",
+    "cells_removed": "int",
+    "qc_metrics": "adata.obs columns: n_genes_by_counts, total_counts, pct_counts_mito"
+  },
+  "validation": {
+    "min_retention_pct": 50,
+    "check": "At least 50% of cells retained. If more than 50% removed, thresholds may be too aggressive \u2014 inspect QC plots."
+  },
+  "provenance_captures": [
+    "min_genes",
+    "max_genes",
+    "max_pct_mito",
+    "min_counts",
+    "cells_before",
+    "cells_after"
+  ]
+}

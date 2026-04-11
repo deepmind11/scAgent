@@ -1,0 +1,41 @@
+{
+  "tool_id": "filter_genes",
+  "name": "Gene Filtering",
+  "category": "qc",
+  "framework": "scanpy",
+  "function": "sc.pp.filter_genes",
+  "valid_after": [
+    "qc"
+  ],
+  "valid_before": [
+    "normalization"
+  ],
+  "paradigms": [
+    "all"
+  ],
+  "parameters": {
+    "min_cells": {
+      "type": "int",
+      "default": 3,
+      "range": [
+        1,
+        10
+      ],
+      "guidance": "Minimum number of cells a gene must be expressed in to be retained. 3 is the standard default. Lower values keep more rare transcripts but increase noise."
+    }
+  },
+  "outputs": {
+    "filtered_adata": "AnnData with rarely-expressed genes removed",
+    "genes_before": "int",
+    "genes_after": "int"
+  },
+  "validation": {
+    "min_retention_pct": 50,
+    "check": "At least 50% of genes retained."
+  },
+  "provenance_captures": [
+    "min_cells",
+    "genes_before",
+    "genes_after"
+  ]
+}

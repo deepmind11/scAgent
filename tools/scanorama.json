@@ -1,0 +1,36 @@
+{
+  "tool_id": "scanorama_integration",
+  "name": "Scanorama Integration",
+  "category": "integration",
+  "framework": "scanorama",
+  "function": "sc.external.pp.scanorama_integrate",
+  "status": "optional",
+  "valid_after": ["feature_selection"],
+  "valid_before": ["neighbor_graph"],
+  "paradigms": ["all"],
+  "parameters": {
+    "batch_key": {
+      "type": "string",
+      "required": true,
+      "guidance": "The obs column containing batch labels."
+    },
+    "basis": {
+      "type": "string",
+      "default": "X_pca",
+      "guidance": "Input embedding to correct."
+    },
+    "adjusted_basis": {
+      "type": "string",
+      "default": "X_scanorama",
+      "guidance": "Key for the corrected embedding."
+    }
+  },
+  "outputs": {
+    "corrected_embedding": "adata.obsm['X_scanorama']"
+  },
+  "validation": {
+    "check": "Batch mixing should improve. Evaluate with UMAP colored by batch."
+  },
+  "notes": "Scanorama uses mutual nearest neighbors for alignment. Fast and works well when batches share cell types. Less effective when batches have non-overlapping cell populations.",
+  "provenance_captures": ["batch_key", "basis", "adjusted_basis", "n_batches"]
+}

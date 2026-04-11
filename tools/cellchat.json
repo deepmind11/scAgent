@@ -1,0 +1,64 @@
+{
+  "tool_id": "cellchat",
+  "name": "CellChat Cell-Cell Communication",
+  "category": "communication",
+  "framework": "cellchat",
+  "function": "CellChat (R via subprocess)",
+  "valid_after": [
+    "annotation"
+  ],
+  "valid_before": [],
+  "paradigms": [
+    "cell_atlas",
+    "disease_vs_healthy",
+    "developmental_trajectory"
+  ],
+  "parameters": {
+    "cell_type_key": {
+      "type": "string",
+      "required": true,
+      "guidance": "obs column with cell type annotations."
+    },
+    "db_type": {
+      "type": "string",
+      "default": "CellChatDB.human",
+      "options": [
+        "CellChatDB.human",
+        "CellChatDB.mouse"
+      ],
+      "guidance": "Ligand-receptor database. Match to species."
+    },
+    "min_cells": {
+      "type": "int",
+      "default": 10,
+      "guidance": "Minimum cells per cell type to include in analysis."
+    },
+    "signaling_type": {
+      "type": "string",
+      "default": "all",
+      "options": [
+        "all",
+        "Secreted_Signaling",
+        "ECM-Receptor",
+        "Cell-Cell_Contact"
+      ],
+      "guidance": "Filter to specific signaling categories."
+    }
+  },
+  "outputs": {
+    "communication_network": "Significant ligand-receptor interactions between cell types",
+    "signaling_pathways": "Active signaling pathways per cell type pair",
+    "n_significant_interactions": "int"
+  },
+  "validation": {
+    "check": "At least some significant interactions found. No interactions may indicate too few cells or misannotated cell types."
+  },
+  "provenance_captures": [
+    "cell_type_key",
+    "db_type",
+    "min_cells",
+    "signaling_type",
+    "n_cell_types",
+    "n_significant_interactions"
+  ]
+}

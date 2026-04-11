@@ -1,0 +1,59 @@
+{
+  "tool_id": "sccoda",
+  "name": "scCODA Compositional Analysis",
+  "category": "composition",
+  "framework": "sccoda",
+  "function": "sccoda.util.cell_composition_data.from_scanpy + sccoda.model",
+  "valid_after": [
+    "annotation"
+  ],
+  "valid_before": [],
+  "paradigms": [
+    "disease_vs_healthy",
+    "temporal_longitudinal"
+  ],
+  "parameters": {
+    "cell_type_key": {
+      "type": "string",
+      "required": true,
+      "guidance": "obs column with cell type labels."
+    },
+    "sample_key": {
+      "type": "string",
+      "required": true,
+      "guidance": "obs column identifying biological samples."
+    },
+    "condition_key": {
+      "type": "string",
+      "required": true,
+      "guidance": "obs column with condition labels."
+    },
+    "reference_cell_type": {
+      "type": "string",
+      "default": "automatic",
+      "guidance": "Reference cell type for compositional analysis. Choose a cell type believed to be unaffected by the condition. If 'automatic', scCODA selects one."
+    },
+    "fdr_threshold": {
+      "type": "float",
+      "default": 0.05,
+      "guidance": "FDR threshold for credible changes."
+    }
+  },
+  "outputs": {
+    "credible_effects": "Which cell types show credible compositional changes",
+    "effect_sizes": "Log-fold change in composition per cell type"
+  },
+  "validation": {
+    "check": "Model should converge. At least one cell type should be testable."
+  },
+  "notes": "Compositional analysis is necessary because cell type proportions sum to 1. An increase in one type necessarily decreases others. Simple proportion tests (e.g., t-test on fractions) are WRONG because they ignore this constraint. scCODA uses a Bayesian model that properly handles the compositional nature of the data.",
+  "provenance_captures": [
+    "cell_type_key",
+    "sample_key",
+    "condition_key",
+    "reference_cell_type",
+    "fdr_threshold",
+    "n_cell_types",
+    "n_samples"
+  ]
+}

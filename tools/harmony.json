@@ -1,0 +1,41 @@
+{
+  "tool_id": "harmony",
+  "name": "Harmony Integration",
+  "category": "integration",
+  "framework": "harmonypy",
+  "function": "sc.external.pp.harmony_integrate",
+  "valid_after": ["pca"],
+  "valid_before": ["neighbor_graph"],
+  "paradigms": ["all"],
+  "parameters": {
+    "key": {
+      "type": "string",
+      "required": true,
+      "guidance": "The obs column containing batch labels (e.g., 'sample', 'donor', 'batch'). This is the variable to correct for."
+    },
+    "basis": {
+      "type": "string",
+      "default": "X_pca",
+      "guidance": "Embedding to correct. Almost always 'X_pca'."
+    },
+    "adjusted_basis": {
+      "type": "string",
+      "default": "X_pca_harmony",
+      "guidance": "Key for the corrected embedding in adata.obsm."
+    },
+    "max_iter_harmony": {
+      "type": "int",
+      "default": 10,
+      "range": [5, 50],
+      "guidance": "Maximum iterations. 10 is usually sufficient. Increase if convergence warning appears."
+    }
+  },
+  "outputs": {
+    "corrected_embedding": "adata.obsm['X_pca_harmony']"
+  },
+  "validation": {
+    "check": "Batch mixing should improve after correction. Evaluate using UMAP colored by batch — batches should overlap. If batches were already well-mixed, Harmony may not be needed."
+  },
+  "notes": "Only needed for multi-sample/multi-batch experiments. For single-sample data, skip this step and use X_pca directly for neighbors. Recommended by 10x Genomics for Chromium data.",
+  "provenance_captures": ["key", "basis", "adjusted_basis", "max_iter_harmony", "n_batches", "convergence_iteration"]
+}

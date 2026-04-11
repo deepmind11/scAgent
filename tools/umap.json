@@ -1,0 +1,43 @@
+{
+  "tool_id": "umap",
+  "name": "UMAP Embedding",
+  "category": "dimensionality_reduction",
+  "framework": "scanpy",
+  "function": "sc.tl.umap",
+  "valid_after": ["neighbor_graph"],
+  "valid_before": [],
+  "paradigms": ["all"],
+  "parameters": {
+    "min_dist": {
+      "type": "float",
+      "default": 0.5,
+      "range": [0.0, 1.0],
+      "guidance": "Controls how tightly UMAP packs points together. Lower values produce tighter clusters visually. 0.5 is default; 0.1-0.3 often produces more visually distinct clusters."
+    },
+    "spread": {
+      "type": "float",
+      "default": 1.0,
+      "range": [0.5, 3.0],
+      "guidance": "Scale of the embedding. Usually left at 1.0."
+    },
+    "n_components": {
+      "type": "int",
+      "default": 2,
+      "guidance": "Number of UMAP dimensions. Always 2 for visualization."
+    },
+    "random_state": {
+      "type": "int",
+      "default": 0,
+      "guidance": "Random seed for reproducibility."
+    }
+  },
+  "outputs": {
+    "embedding": "adata.obsm['X_umap']"
+  },
+  "validation": {
+    "no_nan": true,
+    "check": "No NaN values in UMAP embedding."
+  },
+  "notes": "UMAP is for VISUALIZATION ONLY. Never cluster on UMAP coordinates. Never interpret distances between clusters as biologically meaningful. The topology is informative but metric distances are not preserved.",
+  "provenance_captures": ["min_dist", "spread", "n_components", "random_state"]
+}

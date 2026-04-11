@@ -1,0 +1,43 @@
+{
+  "tool_id": "log_normalize",
+  "name": "Log Normalization (CP10K + log1p)",
+  "category": "normalization",
+  "framework": "scanpy",
+  "function": "sc.pp.normalize_total + sc.pp.log1p",
+  "valid_after": [
+    "qc",
+    "qc"
+  ],
+  "valid_before": [
+    "feature_selection"
+  ],
+  "paradigms": [
+    "all"
+  ],
+  "parameters": {
+    "target_sum": {
+      "type": "float",
+      "default": 10000,
+      "guidance": "Normalize each cell to this total count before log-transforming. 1e4 (CP10K) is the standard. Some workflows use 1e6 (CPM) but CP10K is recommended for scRNA-seq."
+    },
+    "exclude_highly_expressed": {
+      "type": "bool",
+      "default": false,
+      "guidance": "If true, exclude very highly expressed genes from the normalization factor. Can help when a few genes dominate total counts."
+    }
+  },
+  "outputs": {
+    "normalized_adata": "AnnData with log-normalized values in adata.X",
+    "raw_counts": "Original raw counts preserved in adata.raw"
+  },
+  "validation": {
+    "values_are_log_scale": true,
+    "max_value_lt": 15,
+    "raw_exists": true,
+    "check": "adata.X values should be log-scale (max typically < 12). adata.raw must exist for downstream DE testing."
+  },
+  "provenance_captures": [
+    "target_sum",
+    "exclude_highly_expressed"
+  ]
+}

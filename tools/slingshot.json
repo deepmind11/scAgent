@@ -1,0 +1,43 @@
+{
+  "tool_id": "slingshot",
+  "name": "Slingshot Trajectory Inference",
+  "category": "trajectory",
+  "framework": "slingshot",
+  "function": "Slingshot (R via subprocess)",
+  "valid_after": ["clustering", "dimensionality_reduction"],
+  "valid_before": [],
+  "paradigms": ["developmental_trajectory"],
+  "parameters": {
+    "start_cluster": {
+      "type": "string",
+      "default": null,
+      "guidance": "Cluster ID of the root/progenitor population. If known, improves trajectory accuracy."
+    },
+    "end_clusters": {
+      "type": "list",
+      "default": null,
+      "guidance": "Terminal cluster IDs. Optional — Slingshot can infer endpoints automatically."
+    },
+    "reducedDim": {
+      "type": "string",
+      "default": "PCA",
+      "options": ["PCA", "UMAP"],
+      "guidance": "Which embedding to use. PCA is more principled; UMAP is for visualization but may distort distances."
+    },
+    "n_pcs": {
+      "type": "int",
+      "default": 20,
+      "range": [5, 50],
+      "guidance": "Number of PCs to use when reducedDim='PCA'."
+    }
+  },
+  "outputs": {
+    "pseudotime": "Pseudotime per lineage per cell",
+    "lineage_curves": "Fitted principal curves for each lineage",
+    "n_lineages": "int"
+  },
+  "validation": {
+    "check": "Pseudotime values should span a reasonable range. Multiple lineages should correspond to known differentiation branches."
+  },
+  "provenance_captures": ["start_cluster", "end_clusters", "reducedDim", "n_pcs", "n_lineages"]
+}

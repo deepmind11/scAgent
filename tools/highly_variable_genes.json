@@ -1,0 +1,53 @@
+{
+  "tool_id": "highly_variable_genes",
+  "name": "Highly Variable Gene Selection",
+  "category": "feature_selection",
+  "framework": "scanpy",
+  "function": "sc.pp.highly_variable_genes",
+  "valid_after": ["normalization"],
+  "valid_before": ["pca"],
+  "paradigms": ["all"],
+  "parameters": {
+    "n_top_genes": {
+      "type": "int",
+      "default": 2000,
+      "range": [1000, 5000],
+      "guidance": "Number of highly variable genes to select. 2000-3000 is standard. Use higher (4000-5000) for heterogeneous tissues with many cell types."
+    },
+    "flavor": {
+      "type": "string",
+      "default": "seurat",
+      "options": ["seurat", "cell_ranger", "seurat_v3"],
+      "guidance": "Method for HVG selection. 'seurat' works on log-normalized data. 'seurat_v3' works on raw counts (before log-norm) and uses variance-stabilizing transformation — often preferred."
+    },
+    "min_mean": {
+      "type": "float",
+      "default": 0.0125,
+      "guidance": "Minimum mean expression cutoff (for 'seurat' and 'cell_ranger' flavors)."
+    },
+    "max_mean": {
+      "type": "float",
+      "default": 3.0,
+      "guidance": "Maximum mean expression cutoff."
+    },
+    "min_disp": {
+      "type": "float",
+      "default": 0.5,
+      "guidance": "Minimum dispersion cutoff."
+    },
+    "batch_key": {
+      "type": "string",
+      "default": null,
+      "guidance": "If set, select HVGs per batch and take the union. Use when integrating multi-batch data to avoid batch-driven gene selection."
+    }
+  },
+  "outputs": {
+    "hvg_mask": "adata.var['highly_variable'] (boolean mask)",
+    "n_hvgs": "int"
+  },
+  "validation": {
+    "n_hvgs_range": [500, 8000],
+    "check": "Number of HVGs should be between 500 and 8000. If too few, lower min_disp or increase n_top_genes."
+  },
+  "provenance_captures": ["n_top_genes", "flavor", "min_mean", "max_mean", "min_disp", "batch_key", "n_hvgs_selected"]
+}

@@ -1,0 +1,32 @@
+{
+  "tool_id": "paga",
+  "name": "PAGA Trajectory Inference",
+  "category": "trajectory",
+  "framework": "scanpy",
+  "function": "sc.tl.paga",
+  "valid_after": ["clustering"],
+  "valid_before": ["monocle3_pseudotime"],
+  "paradigms": ["developmental_trajectory", "cell_atlas"],
+  "parameters": {
+    "groups": {
+      "type": "string",
+      "default": "leiden",
+      "guidance": "obs key with cluster labels. PAGA computes connectivity between these groups."
+    },
+    "model": {
+      "type": "string",
+      "default": "v1.2",
+      "options": ["v1.0", "v1.2"],
+      "guidance": "PAGA model version. v1.2 is more robust."
+    }
+  },
+  "outputs": {
+    "connectivities": "adata.uns['paga']['connectivities']",
+    "connectivities_tree": "adata.uns['paga']['connectivities_tree']"
+  },
+  "validation": {
+    "check": "PAGA graph should be connected (all clusters reachable). Disconnected components may indicate over-clustering or truly distinct populations."
+  },
+  "notes": "PAGA provides a coarse-grained trajectory graph at the cluster level. Useful for identifying plausible lineage relationships before running pseudotime. Combine with sc.pl.paga for visualization and sc.tl.draw_graph for force-directed layouts initialized by PAGA.",
+  "provenance_captures": ["groups", "model", "n_groups"]
+}

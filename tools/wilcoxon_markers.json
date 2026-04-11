@@ -1,0 +1,73 @@
+{
+  "tool_id": "wilcoxon_markers",
+  "name": "Wilcoxon Rank-Sum Marker Gene Detection",
+  "category": "differential_expression",
+  "framework": "scanpy",
+  "function": "sc.tl.rank_genes_groups",
+  "valid_after": [
+    "clustering"
+  ],
+  "valid_before": [
+    "annotation",
+    "enrichment"
+  ],
+  "paradigms": [
+    "all"
+  ],
+  "parameters": {
+    "groupby": {
+      "type": "string",
+      "default": "leiden",
+      "guidance": "The obs column with cluster or cell type labels to find markers for."
+    },
+    "method": {
+      "type": "string",
+      "default": "wilcoxon",
+      "options": [
+        "wilcoxon",
+        "t-test",
+        "t-test_overestim_var",
+        "logreg"
+      ],
+      "guidance": "Statistical test. Wilcoxon rank-sum is the standard for scRNA-seq marker detection. t-test is faster but assumes normality. logreg (logistic regression) can find markers that jointly discriminate."
+    },
+    "n_genes": {
+      "type": "int",
+      "default": 100,
+      "range": [
+        10,
+        500
+      ],
+      "guidance": "Number of top genes to report per group."
+    },
+    "use_raw": {
+      "type": "bool",
+      "default": true,
+      "guidance": "Use raw counts (from adata.raw) for testing. Should be true \u2014 DE should be computed on the full gene set, not just HVGs."
+    },
+    "corr_method": {
+      "type": "string",
+      "default": "benjamini-hochberg",
+      "options": [
+        "benjamini-hochberg",
+        "bonferroni"
+      ],
+      "guidance": "Multiple testing correction method. Benjamini-Hochberg (FDR) is standard."
+    }
+  },
+  "outputs": {
+    "marker_genes": "adata.uns['rank_genes_groups'] containing names, scores, pvals, pvals_adj, logfoldchanges per group"
+  },
+  "validation": {
+    "check": "Each cluster should have at least 5 significant markers (pval_adj < 0.05, logfc > 1.0). Clusters without clear markers may need to be merged or may represent doublets."
+  },
+  "notes": "This is for finding CLUSTER MARKERS \u2014 genes that distinguish one cluster from all others. For CROSS-CONDITION DE (disease vs. healthy), use pseudobulk methods (DESeq2/edgeR) instead.",
+  "provenance_captures": [
+    "groupby",
+    "method",
+    "n_genes",
+    "use_raw",
+    "corr_method",
+    "n_clusters_tested"
+  ]
+}

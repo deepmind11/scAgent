@@ -1,0 +1,53 @@
+{
+  "tool_id": "cellphonedb",
+  "name": "CellPhoneDB Communication Analysis",
+  "category": "communication",
+  "framework": "cellphonedb",
+  "function": "cellphonedb.core.methods.cpdb_statistical_analysis_method.call",
+  "valid_after": [
+    "annotation"
+  ],
+  "valid_before": [],
+  "paradigms": [
+    "cell_atlas",
+    "disease_vs_healthy",
+    "developmental_trajectory"
+  ],
+  "parameters": {
+    "cell_type_key": {
+      "type": "string",
+      "required": true,
+      "guidance": "obs column with cell type annotations."
+    },
+    "iterations": {
+      "type": "int",
+      "default": 1000,
+      "guidance": "Number of permutations for significance testing."
+    },
+    "threshold": {
+      "type": "float",
+      "default": 0.1,
+      "guidance": "Minimum fraction of cells in a cell type expressing a gene for it to be considered active."
+    },
+    "threads": {
+      "type": "int",
+      "default": 4,
+      "guidance": "Number of parallel threads."
+    }
+  },
+  "outputs": {
+    "significant_means": "Mean expression of significant ligand-receptor pairs",
+    "pvalues": "P-values for each interaction per cell type pair",
+    "deconvoluted": "Per-cell type contribution to each interaction"
+  },
+  "validation": {
+    "check": "Results should contain significant interactions."
+  },
+  "provenance_captures": [
+    "cell_type_key",
+    "iterations",
+    "threshold",
+    "n_cell_types",
+    "n_significant_pairs"
+  ]
+}

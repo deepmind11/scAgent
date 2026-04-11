@@ -1,0 +1,39 @@
+{
+  "tool_id": "bbknn",
+  "name": "BBKNN (Batch-Balanced KNN)",
+  "category": "integration",
+  "framework": "bbknn",
+  "function": "sc.external.pp.bbknn",
+  "status": "optional",
+  "valid_after": ["pca"],
+  "valid_before": ["clustering"],
+  "paradigms": ["all"],
+  "parameters": {
+    "batch_key": {
+      "type": "string",
+      "required": true,
+      "guidance": "The obs column containing batch labels."
+    },
+    "neighbors_within_batch": {
+      "type": "int",
+      "default": 3,
+      "range": [1, 10],
+      "guidance": "Number of nearest neighbors to find within each batch. Lower values enforce more mixing."
+    },
+    "n_pcs": {
+      "type": "int",
+      "default": 50,
+      "range": [10, 100],
+      "guidance": "Number of PCs to use."
+    }
+  },
+  "outputs": {
+    "connectivities": "adata.obsp['connectivities'] (modified in place)",
+    "distances": "adata.obsp['distances'] (modified in place)"
+  },
+  "validation": {
+    "check": "Batch mixing should improve. BBKNN replaces the neighbor graph entirely."
+  },
+  "notes": "BBKNN replaces the sc.pp.neighbors step. Do NOT run sc.pp.neighbors after BBKNN — proceed directly to clustering and UMAP. Fast and simple but less powerful than Harmony or scVI for complex batch effects.",
+  "provenance_captures": ["batch_key", "neighbors_within_batch", "n_pcs", "n_batches"]
+}

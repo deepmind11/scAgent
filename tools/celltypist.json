@@ -1,0 +1,37 @@
+{
+  "tool_id": "celltypist_annotation",
+  "name": "CellTypist Automated Annotation",
+  "category": "annotation",
+  "framework": "celltypist",
+  "function": "celltypist.annotate",
+  "valid_after": ["clustering"],
+  "valid_before": ["differential_expression"],
+  "paradigms": ["all"],
+  "parameters": {
+    "model": {
+      "type": "string",
+      "default": "Immune_All_Low.pkl",
+      "guidance": "Pre-trained model. Choose based on tissue: 'Immune_All_Low.pkl' for PBMCs (broad), 'Immune_All_High.pkl' for fine-grained immune subtypes. Run celltypist.models.models_description() to see all 100+ available models."
+    },
+    "majority_voting": {
+      "type": "bool",
+      "default": true,
+      "guidance": "If true, refine predictions by majority voting within clusters. More robust than per-cell predictions — reduces noise from low-confidence individual cell calls."
+    },
+    "over_clustering": {
+      "type": "string",
+      "default": null,
+      "guidance": "obs key for an over-clustering (e.g., high-resolution Leiden) to use with majority voting. If null, CellTypist generates its own over-clustering internally."
+    }
+  },
+  "outputs": {
+    "per_cell_prediction": "adata.obs['celltypist_prediction']",
+    "majority_vote": "adata.obs['celltypist_majority_voting']",
+    "confidence": "adata.obs['celltypist_confidence']"
+  },
+  "validation": {
+    "all_cells_assigned": true,
+    "check": "All cells should have an annotation. Check that expected major cell types for the tissue are present. Cross-validate against top marker genes per cluster."
+  },
+  "provenance_captures": ["model", "majority_voting", "over_clustering", "n_cell_types_found"]
+}

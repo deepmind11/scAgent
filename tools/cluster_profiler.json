@@ -1,0 +1,49 @@
+{
+  "tool_id": "cluster_profiler",
+  "name": "clusterProfiler GO/KEGG Enrichment",
+  "category": "enrichment",
+  "framework": "clusterProfiler",
+  "function": "clusterProfiler::enrichGO / enrichKEGG (R via subprocess)",
+  "valid_after": ["differential_expression"],
+  "valid_before": [],
+  "paradigms": ["all"],
+  "parameters": {
+    "organism": {
+      "type": "string",
+      "default": "org.Hs.eg.db",
+      "options": ["org.Hs.eg.db", "org.Mm.eg.db"],
+      "guidance": "Annotation database. 'org.Hs.eg.db' for human, 'org.Mm.eg.db' for mouse."
+    },
+    "ont": {
+      "type": "string",
+      "default": "BP",
+      "options": ["BP", "MF", "CC", "ALL"],
+      "guidance": "GO ontology: BP (Biological Process, most common), MF (Molecular Function), CC (Cellular Component), ALL."
+    },
+    "pvalue_cutoff": {
+      "type": "float",
+      "default": 0.05
+    },
+    "qvalue_cutoff": {
+      "type": "float",
+      "default": 0.1
+    },
+    "min_gs_size": {
+      "type": "int",
+      "default": 10,
+      "guidance": "Minimum gene set size."
+    },
+    "max_gs_size": {
+      "type": "int",
+      "default": 500,
+      "guidance": "Maximum gene set size."
+    }
+  },
+  "outputs": {
+    "enrichment_results": "DataFrame with Description, GeneRatio, pvalue, p.adjust, qvalue, geneID"
+  },
+  "validation": {
+    "check": "Results should contain significant terms. Check for redundancy — use simplify() to reduce redundant GO terms."
+  },
+  "provenance_captures": ["organism", "ont", "pvalue_cutoff", "qvalue_cutoff", "n_genes_input", "n_terms_significant"]
+}

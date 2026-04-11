@@ -1,0 +1,68 @@
+{
+  "tool_id": "milor",
+  "name": "Milo Differential Abundance",
+  "category": "composition",
+  "framework": "milor",
+  "function": "miloR (R via subprocess)",
+  "valid_after": [
+    "neighbor_graph",
+    "annotation"
+  ],
+  "valid_before": [],
+  "paradigms": [
+    "disease_vs_healthy",
+    "temporal_longitudinal"
+  ],
+  "parameters": {
+    "sample_key": {
+      "type": "string",
+      "required": true,
+      "guidance": "obs column identifying biological samples."
+    },
+    "condition_key": {
+      "type": "string",
+      "required": true,
+      "guidance": "obs column with condition labels."
+    },
+    "k": {
+      "type": "int",
+      "default": 30,
+      "range": [
+        10,
+        100
+      ],
+      "guidance": "Number of neighbors for the Milo KNN graph. Should be similar to the k used for clustering."
+    },
+    "prop": {
+      "type": "float",
+      "default": 0.1,
+      "range": [
+        0.05,
+        0.3
+      ],
+      "guidance": "Proportion of cells to sample for defining neighborhoods. Higher values = more neighborhoods but slower."
+    },
+    "fdr_threshold": {
+      "type": "float",
+      "default": 0.1,
+      "guidance": "Spatial FDR threshold for differential abundance."
+    }
+  },
+  "outputs": {
+    "da_neighborhoods": "Neighborhoods with spatial FDR, logFC, and cell type composition",
+    "n_da_neighborhoods": "int"
+  },
+  "validation": {
+    "check": "Neighborhoods should cover all major cell types. Sufficient neighborhoods should be tested."
+  },
+  "notes": "Milo tests differential abundance at the NEIGHBORHOOD level (not cell type level), which captures continuous changes in cell state that don't align with discrete clusters. Complementary to scCODA which tests at the cell type level.",
+  "provenance_captures": [
+    "sample_key",
+    "condition_key",
+    "k",
+    "prop",
+    "fdr_threshold",
+    "n_neighborhoods",
+    "n_da_neighborhoods"
+  ]
+}

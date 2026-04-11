@@ -1,0 +1,73 @@
+{
+  "tool_id": "deseq2_pseudobulk",
+  "name": "DESeq2 Pseudobulk Differential Expression",
+  "category": "differential_expression",
+  "framework": "deseq2",
+  "function": "Pseudobulk aggregation + DESeq2 (R via subprocess)",
+  "valid_after": [
+    "annotation"
+  ],
+  "valid_before": [
+    "enrichment"
+  ],
+  "paradigms": [
+    "disease_vs_healthy",
+    "temporal_longitudinal",
+    "perturbation_screen"
+  ],
+  "parameters": {
+    "cell_type_key": {
+      "type": "string",
+      "required": true,
+      "guidance": "obs column with cell type labels. DE is run separately per cell type."
+    },
+    "sample_key": {
+      "type": "string",
+      "required": true,
+      "guidance": "obs column identifying biological samples/donors. These are the REPLICATES."
+    },
+    "condition_key": {
+      "type": "string",
+      "required": true,
+      "guidance": "obs column with condition labels (e.g., 'disease' vs 'healthy')."
+    },
+    "min_cells_per_pseudobulk": {
+      "type": "int",
+      "default": 10,
+      "range": [
+        5,
+        50
+      ],
+      "guidance": "Minimum cells needed to form a valid pseudobulk sample. Cell type \u00d7 sample combinations with fewer cells are excluded."
+    },
+    "design_formula": {
+      "type": "string",
+      "default": "~ condition",
+      "guidance": "DESeq2 design formula. Can add covariates: '~ condition + sex + age'. The last term is the variable of interest."
+    },
+    "alpha": {
+      "type": "float",
+      "default": 0.05,
+      "guidance": "Significance threshold for adjusted p-values."
+    }
+  },
+  "outputs": {
+    "de_results": "DataFrame per cell type with gene, log2FoldChange, pvalue, padj",
+    "n_de_genes": "Number of significant DE genes per cell type"
+  },
+  "validation": {
+    "min_replicates": 2,
+    "check": "At least 2 biological replicates per condition per cell type. Report pseudobulk sample sizes."
+  },
+  "notes": "CRITICAL: NEVER use individual cells as replicates. Always aggregate to pseudobulk (sum raw counts per cell type per sample). Biological replicates are SAMPLES, not cells. This is the #1 error in cross-condition single-cell DE analysis. Pseudobulk methods (DESeq2, edgeR) consistently outperform cell-level methods (Wilcoxon, MAST) for cross-condition comparisons (Squair et al. 2021, Nature Communications).",
+  "provenance_captures": [
+    "cell_type_key",
+    "sample_key",
+    "condition_key",
+    "min_cells_per_pseudobulk",
+    "design_formula",
+    "alpha",
+    "n_cell_types_tested",
+    "n_samples_per_condition"
+  ]
+}

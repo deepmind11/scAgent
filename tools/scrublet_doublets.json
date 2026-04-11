@@ -1,0 +1,64 @@
+{
+  "tool_id": "scrublet_doublets",
+  "name": "Scrublet Doublet Detection",
+  "category": "qc",
+  "framework": "scrublet",
+  "function": "scrublet.Scrublet",
+  "valid_after": [
+    "qc"
+  ],
+  "valid_before": [
+    "normalization"
+  ],
+  "paradigms": [
+    "all"
+  ],
+  "parameters": {
+    "expected_doublet_rate": {
+      "type": "float",
+      "default": 0.06,
+      "range": [
+        0.01,
+        0.15
+      ],
+      "guidance": "Expected fraction of doublets. For 10x Chromium: approximately 0.8% per 1,000 cells captured. E.g., 5,000 cells targeted -> ~4% doublets, 10,000 -> ~8%."
+    },
+    "n_prin_comps": {
+      "type": "int",
+      "default": 30,
+      "range": [
+        10,
+        50
+      ],
+      "guidance": "Number of principal components for embedding simulated doublets."
+    },
+    "sim_doublet_ratio": {
+      "type": "float",
+      "default": 2.0,
+      "range": [
+        1.0,
+        5.0
+      ],
+      "guidance": "Ratio of simulated doublets to observed cells."
+    }
+  },
+  "outputs": {
+    "doublet_scores": "adata.obs['doublet_score']",
+    "predicted_doublets": "adata.obs['predicted_doublet']",
+    "n_doublets": "int"
+  },
+  "validation": {
+    "doublet_rate_range": [
+      0.01,
+      0.15
+    ],
+    "check": "Doublet rate between 1-15%. If outside this range, inspect the score histogram and consider adjusting the threshold manually."
+  },
+  "provenance_captures": [
+    "expected_doublet_rate",
+    "n_prin_comps",
+    "sim_doublet_ratio",
+    "threshold_used",
+    "n_doublets"
+  ]
+}

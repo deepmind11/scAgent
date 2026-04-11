@@ -1,0 +1,53 @@
+{
+  "tool_id": "louvain_clustering",
+  "name": "Louvain Clustering",
+  "category": "clustering",
+  "framework": "scanpy",
+  "function": "sc.tl.louvain",
+  "valid_after": [
+    "neighbor_graph"
+  ],
+  "valid_before": [
+    "differential_expression",
+    "annotation"
+  ],
+  "paradigms": [
+    "all"
+  ],
+  "parameters": {
+    "resolution": {
+      "type": "float",
+      "default": 1.0,
+      "range": [
+        0.1,
+        5.0
+      ],
+      "guidance": "Same semantics as Leiden resolution."
+    },
+    "key_added": {
+      "type": "string",
+      "default": "louvain"
+    },
+    "random_state": {
+      "type": "int",
+      "default": 0
+    }
+  },
+  "outputs": {
+    "cluster_labels": "adata.obs['louvain']",
+    "n_clusters": "int"
+  },
+  "validation": {
+    "min_clusters": 2,
+    "max_clusters_ratio": 0.1,
+    "min_cells_per_cluster": 10,
+    "check": "Same validation as Leiden."
+  },
+  "notes": "Leiden is generally preferred over Louvain. Leiden guarantees connected clusters and is faster. Use Louvain only for legacy compatibility or comparison.",
+  "provenance_captures": [
+    "resolution",
+    "key_added",
+    "random_state",
+    "n_clusters"
+  ]
+}
