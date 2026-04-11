@@ -133,16 +133,17 @@ Each skill is a Markdown file that instructs the agent on:
 ---
 
 ### Chunk 3: Skills — Clustering & Annotation
-**Goal:** Skills for HVG → PCA → neighbors → clustering → marker genes → cell type annotation.
+**Goal:** Skills for HVG → PCA → integration → neighbors → clustering → marker genes → cell type annotation.
 
 Skills to create:
 - `.pi/skills/feature-selection/SKILL.md` — HVG selection
 - `.pi/skills/dimensionality-reduction/SKILL.md` — PCA + UMAP/tSNE
+- `.pi/skills/integration/SKILL.md` — Batch correction (Harmony, scVI, Scanorama, BBKNN); when to use, how to evaluate
 - `.pi/skills/clustering/SKILL.md` — Leiden clustering with resolution guidance, sweep strategy
 - `.pi/skills/marker-genes/SKILL.md` — Differential expression for cluster markers (Wilcoxon)
 - `.pi/skills/cell-annotation/SKILL.md` — Cell type annotation (manual + CellTypist)
 
-**Deliverable:** 5 more skills. scAgent can now run a complete QC → annotation pipeline on the PBMC 10k dataset. This is the first end-to-end test.
+**Deliverable:** 6 more skills. scAgent can now run a complete QC → annotation pipeline on the PBMC 10k dataset. This is the first end-to-end test.
 
 **Milestone test:** Run scAgent on the PBMC 10k dataset interactively. Ask it to "analyze this dataset." Verify it produces sensible cell types (CD4 T, CD8 T, B, NK, Mono CD14, Mono FCGR3A, DC, Platelet).
 
