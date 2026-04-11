@@ -54,6 +54,28 @@ diff = graph.diff("main", "high_res")
 - For "how can I reproduce this?" → use `graph.replay_plan()` and present it as an ordered list.
 - For "what's different between these branches?" → use `graph.diff(branch_a, branch_b)`.
 
+## Custom / Ad-Hoc Analysis Steps
+
+When executing code that does NOT come from a `scagent.tools.*` function — custom computations, external packages, researcher-provided scripts — use `record_custom()`:
+
+```python
+from scagent.provenance import record_custom
+
+record_custom(
+    graph,
+    description="mito/ribo ratio column",
+    code="adata.obs['mito_ribo'] = adata.obs['pct_counts_mt'] / adata.obs['pct_counts_ribo']",
+    user_prompt="compute the ratio of mito to ribo genes",
+    effects={"added_obs_columns": ["mito_ribo"]},
+)
+```
+
+Rules:
+- **Always record custom steps.** If you wrote and executed code that modifies the AnnData, record it.
+- **Include the exact code.** Paste the code string verbatim — this is what makes it reproducible.
+- **Describe the effects.** What columns were added? How many cells were removed? This goes in `effects`.
+- Custom steps appear as `tool_id="custom"` in the provenance graph and replay plan.
+
 ## File Location
 
 Provenance is stored at `.scagent/provenance.jsonld`. This file is:

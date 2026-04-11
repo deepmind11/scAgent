@@ -805,3 +805,53 @@ def record_step(
         started_at=started_at,
         ended_at=ended_at,
     )
+
+
+def record_custom(
+    graph: ProvenanceGraph,
+    *,
+    description: str,
+    code: str,
+    user_prompt: str = "",
+    effects: dict[str, Any] | None = None,
+    input_hash: str = "",
+    output_hash: str = "",
+    branch: str = "main",
+    started_at: str | None = None,
+    ended_at: str | None = None,
+) -> str:
+    """Record a custom (non-tool) analysis step in the provenance graph.
+
+    Use this when the agent executes code that doesn't come from a
+    registered ``scagent.tools.*`` function — e.g., ad-hoc computations,
+    custom filtering, external package calls, or researcher-provided
+    scripts.
+
+    Parameters
+    ----------
+    description
+        Short human-readable label (e.g., ``"mito/ribo ratio column"``).
+    code
+        The Python code that was executed, verbatim.
+    user_prompt
+        The researcher's original request.
+    effects
+        Optional dict describing what changed — e.g.,
+        ``{"added_obs_columns": ["mito_ribo_ratio"], "cells_removed": 0}``.
+        Free-form; stored as extras in provenance.
+    """
+    extras = {"code": code}
+    if effects:
+        extras["effects"] = effects
+
+    return graph.record(
+        tool_id="custom",
+        parameters={"description": description},
+        extras=extras,
+        input_hash=input_hash,
+        output_hash=output_hash,
+        user_prompt=user_prompt,
+        branch=branch,
+        started_at=started_at,
+        ended_at=ended_at,
+    )

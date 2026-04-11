@@ -7,7 +7,7 @@ from pathlib import Path
 
 import pytest
 
-from scagent.provenance import ProvenanceGraph, record_step
+from scagent.provenance import ProvenanceGraph, record_step, record_custom
 
 
 # ---------------------------------------------------------------------------
@@ -265,6 +265,49 @@ class TestRecordStepAdapter:
     def test_raises_without_provenance_key(self, graph):
         with pytest.raises(ValueError, match="no 'provenance' key"):
             record_step(graph, {"metrics": {}})
+
+
+class TestRecordCustom:
+    def test_basic_custom_step(self, graph):
+        code = "adata.obs['mito_ribo'] = adata.obs['pct_counts_mt'] / adata.obs['pct_counts_ribo']"
+        aid = record_custom(
+            graph,
+            description="mito/ribo ratio column",
+            code=code,
+            user_prompt="compute the ratio of mito to ribo genes",
+        )
+        a = graph.get_activity(aid)
+        assert a is not None
+        assert a["tool_id"] == "custom"
+        assert a["parameters"]["description"] == "mito/ribo ratio column"
+        assert a["extras"]["code"] == code
+
+    def test_custom_with_effects(self, graph):
+        aid = record_custom(
+            graph,
+            description="remove low-quality cells",
+            code="adata = adata[adata.obs['score'] > 0.5].copy()",
+            effects={"cells_before": 1000, "cells_after": 850, "added_obs_columns": []},
+            user_prompt="filter cells with score below 0.5",
+        )
+        a = graph.get_activity(aid)
+        assert a["extras"]["effects"]["cells_before"] == 1000
+        assert a["extras"]["effects"]["cells_after"] == 850
+
+    def test_custom_in_replay_plan(self, graph):
+        graph.record("pca", {"n_comps": 50})
+        record_custom(graph, description="custom filter", code="adata = adata[mask]")
+        graph.record("leiden_clustering", {"resolution": 1.0})
+
+        plan = graph.replay_plan()
+        assert len(plan) == 3
+        assert plan[1] == ("custom", {"description": "custom filter"})
+
+    def test_custom_in_summary(self, graph):
+        record_custom(graph, description="add score column", code="x = 1")
+        md = graph.summary()
+        assert "custom" in md
+        assert "add score column" in md
 
 
 class TestSizeBudget:
