@@ -1,0 +1,37 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+.eggs/
+
+# Virtual environments
+.venv/
+venv/
+
+# uv
+uv.lock
+
+# Data (large files, download separately)
+data/
+
+# scAgent runtime state
+.scagent/
+
+# pi sessions (personal, don't share)
+.pi/sessions/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# pi auth (personal credentials)
+.pi/auth.json
+.pi/bin/
