@@ -13,6 +13,9 @@ dependencies = [
     "seaborn",
 ]
 
+[tool.setuptools.packages.find]
+include = ["scagent*"]
+
 [project.optional-dependencies]
 eval = [
     "latch-eval-tools>=0.1.18",
