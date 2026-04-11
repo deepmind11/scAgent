@@ -9,6 +9,8 @@ dependencies = [
     "scrublet",
     "harmonypy",
     "leidenalg",
+    "celltypist",
+    "scikit-learn",
     "matplotlib",
     "seaborn",
 ]
