@@ -82,6 +82,12 @@ pip install -e .
 
 **Deliverable:** Working Python env, loadable dataset, scBench harness confirmed working.
 
+**Status: ✅ DONE**
+- Python env: uv + .venv, scanpy 1.12.1, anndata 0.12.10
+- Dataset: `data/pbmc10k/filtered_feature_bc_matrix.h5` — 11,769 cells × 33,538 genes
+- scBench: cloned to `~/Projects/scbench-eval/`, latch auth working, dummy agent passes QC eval
+- Data layout: scBench puts files as `work_dir/{node_id}` (e.g., `work_dir/157798549.node`), not under `data/`
+
 ---
 
 ### Chunk 1: Tool Registry (Core 10)
