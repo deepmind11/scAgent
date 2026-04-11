@@ -1,0 +1,14 @@
+{
+  "type": "numeric_tolerance",
+  "config": {
+    "ground_truth": {
+      "pericyte_caf_relative_pca_knn_adjacency": 1.5
+    },
+    "tolerances": {
+      "pericyte_caf_relative_pca_knn_adjacency": {
+        "type": "min",
+        "value": 1.1
+      }
+    }
+  }
+}

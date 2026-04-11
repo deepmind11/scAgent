@@ -1,0 +1,19 @@
+{
+  "type": "distribution_comparison",
+  "config": {
+    "ground_truth": {
+      "cell_type_distribution": {
+        "Immune": 66.4,
+        "Epithelial/Cancer": 24.5,
+        "CAF": 8.0
+      }
+    },
+    "tolerances": {
+      "cell_type_percentages": {
+        "type": "absolute",
+        "value": 10.0,
+        "description": "Each compartment percentage must be within \u00b110 percentage points of ground truth"
+      }
+    }
+  }
+}

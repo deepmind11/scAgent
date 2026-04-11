@@ -1,0 +1,14 @@
+{
+  "type": "numeric_tolerance",
+  "config": {
+    "ground_truth": {
+      "cells_after_filtering": 6420
+    },
+    "tolerances": {
+      "cells_after_filtering": {
+        "type": "absolute",
+        "value": 100
+      }
+    }
+  }
+}

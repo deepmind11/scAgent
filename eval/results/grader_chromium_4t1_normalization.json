@@ -1,0 +1,14 @@
+{
+  "type": "numeric_tolerance",
+  "config": {
+    "ground_truth": {
+      "gene_value": 2.3
+    },
+    "tolerances": {
+      "gene_value": {
+        "type": "absolute",
+        "value": 0.1
+      }
+    }
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "type": "marker_gene_precision_recall",
+  "config": {
+    "canonical_markers": [
+      "Tpm1",
+      "Tpm2",
+      "Myl9",
+      "Tagln",
+      "Cnn2",
+      "Cnn3",
+      "Igfbp3",
+      "Tnc",
+      "Tmem119"
+    ],
+    "answer_field": "top_marker_genes",
+    "scoring": {
+      "pass_thresholds": {
+        "recall_at_k": 0.67,
+        "precision_at_k": 0.0
+      }
+    }
+  }
+}
