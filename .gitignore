@@ -38,3 +38,4 @@ Thumbs.db
 
 # Build artifacts
 *.egg-info/
+.eval_cache/
