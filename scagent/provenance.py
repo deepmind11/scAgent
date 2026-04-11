@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import json
 import platform
+import uuid
 from copy import deepcopy
 from dataclasses import asdict, dataclass, field
 from datetime import datetime, timezone
@@ -68,6 +69,18 @@ class ToolAgent:
     registry_version: str = "0.1.0"
 
 
+@dataclass
+class Session:
+    """A researcher interaction session — marks when scAgent was opened/closed."""
+
+    id: str  # e.g., "sca:session_001"
+    session_number: int
+    started_at: str  # ISO-8601
+    ended_at: str | None  # None while session is active
+    software_versions: dict[str, str]
+    activities: list[str] = field(default_factory=list)  # activity IDs recorded in this session
+
+
 # ---------------------------------------------------------------------------
 # Version capture helper
 # ---------------------------------------------------------------------------
@@ -108,6 +121,7 @@ class ProvenanceGraph:
         self._entities: list[Entity] = []
         self._activities: list[Activity] = []
         self._agents: dict[str, ToolAgent] = {}  # keyed by tool_id
+        self._sessions: list[Session] = []
 
         # Monotonic counter for unique activity IDs
         self._counter: int = 0
@@ -118,6 +132,40 @@ class ProvenanceGraph:
         # Load existing graph if present
         if self._path.exists():
             self._load()
+
+        # Start a new session
+        self._start_session()
+
+    # ------------------------------------------------------------------
+    # Session management
+    # ------------------------------------------------------------------
+
+    def _start_session(self) -> None:
+        """Start a new session.  Called automatically on __init__."""
+        n = len(self._sessions) + 1
+        self._current_session = Session(
+            id=f"sca:session_{n:03d}",
+            session_number=n,
+            started_at=datetime.now(timezone.utc).isoformat(),
+            ended_at=None,
+            software_versions=_capture_versions(),
+        )
+        self._sessions.append(self._current_session)
+
+    def end_session(self) -> None:
+        """Mark the current session as ended.  Auto-saves."""
+        if self._current_session and self._current_session.ended_at is None:
+            self._current_session.ended_at = datetime.now(timezone.utc).isoformat()
+            self.save()
+
+    @property
+    def current_session(self) -> Session:
+        return self._current_session
+
+    @property
+    def sessions(self) -> list[dict[str, Any]]:
+        """Return all sessions as dicts."""
+        return [asdict(s) for s in self._sessions]
 
     # ------------------------------------------------------------------
     # Recording
@@ -211,6 +259,10 @@ class ProvenanceGraph:
         self._activities.append(activity)
         self._branch_steps[branch] = step + 1
 
+        # Tag this activity to the current session
+        if self._current_session:
+            self._current_session.activities.append(activity_id)
+
         self.save()
         return activity_id
 
@@ -269,12 +321,27 @@ class ProvenanceGraph:
         if not chain:
             return f"_No provenance recorded for branch `{branch}`._"
 
+        # Build a lookup: activity_id → session_number
+        activity_to_session: dict[str, int] = {}
+        for s in self._sessions:
+            for aid in s.activities:
+                activity_to_session[aid] = s.session_number
+
         lines = [
-            f"## Analysis Provenance (branch: {branch}, {len(chain)} steps)\n",
+            f"## Analysis Provenance (branch: {branch}, {len(chain)} steps, {len(self._sessions)} sessions)\n",
             "| # | Tool | Key Params | Extras |",
             "|---|------|------------|--------|",
         ]
+        current_session_num = None
         for i, a in enumerate(chain):
+            # Insert session boundary marker
+            sess_num = activity_to_session.get(a["activity_id"])
+            if sess_num is not None and sess_num != current_session_num:
+                sess = self._sessions[sess_num - 1]
+                ts = sess.started_at[:19].replace("T", " ")  # trim to readable
+                lines.append(f"| | **── Session {sess_num} ({ts}) ──** | | |")
+                current_session_num = sess_num
+
             params_str = ", ".join(
                 f"{k}={_fmt(v)}" for k, v in list(a["parameters"].items())[:4]
             )
@@ -385,6 +452,21 @@ class ProvenanceGraph:
                 }
             )
 
+        # Sessions
+        for s in self._sessions:
+            snode: dict[str, Any] = {
+                "@id": s.id,
+                "@type": "sca:Session",
+                "sca:session_number": s.session_number,
+                "prov:startedAtTime": s.started_at,
+                "sca:activities": s.activities,
+            }
+            if s.ended_at:
+                snode["prov:endedAtTime"] = s.ended_at
+            for k, v in s.software_versions.items():
+                snode[f"sca:{k}_version"] = v
+            graph_nodes.append(snode)
+
         return {
             "@context": {
                 "prov": "http://www.w3.org/ns/prov#",
@@ -414,6 +496,7 @@ class ProvenanceGraph:
         entity_nodes = []
         activity_nodes = []
         agent_nodes = []
+        session_nodes = []
 
         for node in graph_nodes:
             ntype = node.get("@type", "")
@@ -421,6 +504,8 @@ class ProvenanceGraph:
                 entity_nodes.append(node)
             elif ntype == "prov:Activity":
                 activity_nodes.append(node)
+            elif ntype == "sca:Session":
+                session_nodes.append(node)
             elif isinstance(ntype, list) and "prov:Agent" in ntype:
                 agent_nodes.append(node)
 
@@ -473,6 +558,22 @@ class ProvenanceGraph:
                     a.generated = e.id
                     break
             self._activities.append(a)
+
+        # Reconstruct sessions
+        for n in sorted(session_nodes, key=lambda x: x.get("sca:session_number", 0)):
+            sw: dict[str, str] = {}
+            for k, v in n.items():
+                if k.startswith("sca:") and k.endswith("_version"):
+                    sw[k[4:-8]] = v
+            s = Session(
+                id=n["@id"],
+                session_number=n.get("sca:session_number", 0),
+                started_at=n.get("prov:startedAtTime", ""),
+                ended_at=n.get("prov:endedAtTime"),
+                software_versions=sw,
+                activities=n.get("sca:activities", []),
+            )
+            self._sessions.append(s)
 
         # Restore counters
         self._counter = len(self._activities)

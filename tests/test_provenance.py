@@ -319,6 +319,68 @@ class TestEmptyGraph:
         assert graph.get_entity("nonexistent") is None
 
 
+class TestSessions:
+    def test_session_created_on_init(self, graph):
+        assert len(graph.sessions) == 1
+        s = graph.sessions[0]
+        assert s["session_number"] == 1
+        assert s["ended_at"] is None  # still active
+        assert "python" in s["software_versions"]
+
+    def test_activities_tagged_to_session(self, graph):
+        graph.record("pca", {"n_comps": 50})
+        graph.record("leiden_clustering", {"resolution": 1.0})
+        s = graph.sessions[0]
+        assert len(s["activities"]) == 2
+
+    def test_end_session(self, graph):
+        graph.record("pca", {"n_comps": 50})
+        graph.end_session()
+        s = graph.sessions[0]
+        assert s["ended_at"] is not None
+
+    def test_multi_session_roundtrip(self, tmp_dir):
+        # Session 1
+        g1 = ProvenanceGraph(tmp_dir)
+        g1.record("load_10x_h5", {"filename": "test.h5"})
+        g1.record("filter_cells", {"min_genes": 200})
+        g1.end_session()
+
+        # Session 2 — new graph instance loads the file
+        g2 = ProvenanceGraph(tmp_dir)
+        g2.record("pca", {"n_comps": 50})
+
+        assert len(g2.sessions) == 2
+        assert g2.sessions[0]["session_number"] == 1
+        assert g2.sessions[0]["ended_at"] is not None
+        assert len(g2.sessions[0]["activities"]) == 2
+        assert g2.sessions[1]["session_number"] == 2
+        assert g2.sessions[1]["ended_at"] is None  # still active
+        assert len(g2.sessions[1]["activities"]) == 1
+
+    def test_session_boundary_in_summary(self, tmp_dir):
+        g1 = ProvenanceGraph(tmp_dir)
+        g1.record("load_10x_h5", {"filename": "test.h5"})
+        g1.end_session()
+
+        g2 = ProvenanceGraph(tmp_dir)
+        g2.record("pca", {"n_comps": 50})
+
+        md = g2.summary()
+        assert "Session 1" in md
+        assert "Session 2" in md
+        assert "2 sessions" in md
+
+    def test_session_serialized_in_jsonld(self, tmp_dir):
+        g = ProvenanceGraph(tmp_dir)
+        g.record("pca", {"n_comps": 50})
+        doc = g.serialize()
+        session_nodes = [n for n in doc["@graph"] if n.get("@type") == "sca:Session"]
+        assert len(session_nodes) == 1
+        assert session_nodes[0]["sca:session_number"] == 1
+        assert "prov:startedAtTime" in session_nodes[0]
+
+
 class TestForkBranch:
     def test_fork_creates_branch(self, graph):
         graph.record("pca", {"n_comps": 50}, branch="main")
