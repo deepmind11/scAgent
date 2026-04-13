@@ -45,3 +45,4 @@ PLAN.md
 
 # Copyrighted PDFs (download separately, see README)
 *.pdf
+test-install.Dockerfile
