@@ -1,0 +1,296 @@
+"""Paradigm-aware analysis DAG for scAgent.
+
+Generates an ordered, dependency-checked plan of analysis steps based
+on the experiment context.  The agent uses this to suggest next steps,
+validate ordering, and track progress.
+
+Usage::
+
+    from scagent.context import ExperimentContext
+    from scagent.dag import AnalysisDAG
+
+    ctx = ExperimentContext(Path(".scagent"))
+    dag = AnalysisDAG.from_context(ctx)
+    print(dag.summary())
+    step = dag.next_step()
+"""
+
+from __future__ import annotations
+
+import json
+from copy import deepcopy
+from dataclasses import asdict, dataclass, field
+from pathlib import Path
+from typing import Any
+
+from scagent.context import ExperimentContext
+
+
+# ---------------------------------------------------------------------------
+# Data model
+# ---------------------------------------------------------------------------
+
+@dataclass
+class DAGStep:
+    """A single step in the analysis DAG."""
+
+    id: str
+    name: str  # human-readable
+    category: str  # qc, normalization, clustering, de, trajectory, etc.
+    tool_id: str | None = None  # maps to tool registry; None for meta-steps
+    depends_on: list[str] = field(default_factory=list)
+    status: str = "pending"  # pending, done, skipped
+    skip_reason: str | None = None
+    required: bool = True
+    conditional: bool = False  # True if step is included only when condition is met
+
+
+# ---------------------------------------------------------------------------
+# DAG definitions per paradigm
+# ---------------------------------------------------------------------------
+
+def _cell_atlas_steps(ctx: ExperimentContext) -> list[DAGStep]:
+    """Cell atlas: single-tissue deep profiling."""
+    steps = [
+        DAGStep("load", "Load data", "loading", "load_10x_h5"),
+        DAGStep("qc_metrics", "QC metrics", "qc", "calculate_qc_metrics", ["load"]),
+        DAGStep("filter_cells", "Filter cells", "qc", "filter_cells", ["qc_metrics"]),
+        DAGStep("filter_genes", "Filter genes", "qc", "filter_genes", ["filter_cells"]),
+        DAGStep("doublet_detection", "Doublet detection", "qc", "scrublet_doublets", ["filter_genes"]),
+        DAGStep("normalize", "Normalize", "normalization", "log_normalize", ["doublet_detection"]),
+        DAGStep("hvg", "Highly variable genes", "feature_selection", "highly_variable_genes", ["normalize"]),
+        DAGStep("pca", "PCA", "dimensionality_reduction", "pca", ["hvg"]),
+    ]
+
+    if ctx.needs_batch_correction():
+        steps.append(DAGStep(
+            "batch_correction", "Batch correction", "integration", "harmony",
+            ["pca"], conditional=True,
+        ))
+        neighbor_dep = "batch_correction"
+    else:
+        neighbor_dep = "pca"
+
+    steps.extend([
+        DAGStep("neighbors", "Neighbor graph", "neighbors", "neighbor_graph", [neighbor_dep]),
+        DAGStep("clustering", "Clustering", "clustering", "leiden_clustering", ["neighbors"]),
+        DAGStep("umap", "UMAP embedding", "embedding", "umap", ["neighbors"]),
+        DAGStep("markers", "Marker genes", "differential_expression", "wilcoxon_markers", ["clustering"]),
+        DAGStep("annotation", "Cell type annotation", "annotation", "celltypist_annotation", ["clustering", "markers"]),
+    ])
+
+    return steps
+
+
+def _disease_vs_healthy_steps(ctx: ExperimentContext) -> list[DAGStep]:
+    """Disease vs. healthy: cross-condition comparison."""
+    steps = _cell_atlas_steps(ctx)  # shared prefix
+
+    # Add DE + enrichment + composition
+    steps.extend([
+        DAGStep(
+            "pseudobulk_de", "Pseudobulk DE", "differential_expression",
+            "deseq2_pseudobulk", ["annotation"], required=True,
+        ),
+        DAGStep(
+            "pathway_enrichment", "Pathway enrichment", "enrichment",
+            "gsea", ["pseudobulk_de"], required=False,
+        ),
+        DAGStep(
+            "composition", "Composition analysis", "composition",
+            "sccoda", ["annotation"], required=False, conditional=True,
+        ),
+    ])
+
+    return steps
+
+
+def _developmental_trajectory_steps(ctx: ExperimentContext) -> list[DAGStep]:
+    """Developmental trajectory: pseudotime / lineage analysis."""
+    steps = _cell_atlas_steps(ctx)  # shared prefix
+
+    # Add trajectory-specific steps
+    steps.extend([
+        DAGStep(
+            "trajectory", "Trajectory inference", "trajectory",
+            "paga", ["clustering", "annotation"],
+        ),
+        DAGStep(
+            "pseudotime", "Pseudotime", "trajectory",
+            "monocle3", ["trajectory"],
+        ),
+        DAGStep(
+            "rna_velocity", "RNA velocity", "trajectory",
+            "scvelo", ["neighbors"], required=False, conditional=True,
+        ),
+    ])
+
+    return steps
+
+
+_PARADIGM_BUILDERS = {
+    "cell_atlas": _cell_atlas_steps,
+    "disease_vs_healthy": _disease_vs_healthy_steps,
+    "developmental_trajectory": _developmental_trajectory_steps,
+}
+
+
+# ---------------------------------------------------------------------------
+# AnalysisDAG
+# ---------------------------------------------------------------------------
+
+class AnalysisDAG:
+    """Paradigm-aware analysis DAG with progress tracking.
+
+    Parameters
+    ----------
+    paradigm
+        Experiment paradigm (e.g., ``"cell_atlas"``).
+    steps
+        Ordered list of :class:`DAGStep` objects.
+    """
+
+    FILENAME = "dag.json"
+
+    def __init__(self, paradigm: str, steps: list[DAGStep]) -> None:
+        self.paradigm = paradigm
+        self.steps = steps
+        self._step_index: dict[str, DAGStep] = {s.id: s for s in steps}
+
+    # ------------------------------------------------------------------
+    # Factory
+    # ------------------------------------------------------------------
+
+    @classmethod
+    def from_context(cls, ctx: ExperimentContext) -> "AnalysisDAG":
+        """Generate a DAG appropriate for the experiment context."""
+        paradigm = ctx.paradigm
+        if paradigm is None:
+            raise ValueError("Cannot generate DAG: paradigm is not set in experiment context")
+        builder = _PARADIGM_BUILDERS.get(paradigm)
+        if builder is None:
+            raise ValueError(
+                f"No DAG definition for paradigm '{paradigm}'. "
+                f"Supported: {sorted(_PARADIGM_BUILDERS.keys())}"
+            )
+        steps = builder(ctx)
+        return cls(paradigm, steps)
+
+    # ------------------------------------------------------------------
+    # Navigation
+    # ------------------------------------------------------------------
+
+    def next_step(self) -> DAGStep | None:
+        """Return the first pending step whose dependencies are all met."""
+        for step in self.steps:
+            if step.status != "pending":
+                continue
+            if self._deps_met(step):
+                return step
+        return None
+
+    def complete_step(self, step_id: str) -> None:
+        """Mark a step as done."""
+        step = self._get(step_id)
+        step.status = "done"
+
+    def skip_step(self, step_id: str, reason: str = "") -> None:
+        """Mark a step as skipped."""
+        step = self._get(step_id)
+        step.status = "skipped"
+        step.skip_reason = reason
+
+    def is_valid_step(self, step_id: str) -> bool:
+        """Check if a step can be executed (all dependencies met)."""
+        step = self._get(step_id)
+        return self._deps_met(step)
+
+    def get_step(self, step_id: str) -> DAGStep | None:
+        """Return a step by ID, or *None*."""
+        return self._step_index.get(step_id)
+
+    @property
+    def done_steps(self) -> list[DAGStep]:
+        return [s for s in self.steps if s.status == "done"]
+
+    @property
+    def pending_steps(self) -> list[DAGStep]:
+        return [s for s in self.steps if s.status == "pending"]
+
+    @property
+    def progress(self) -> tuple[int, int]:
+        """Return (done_count, total_count)."""
+        total = sum(1 for s in self.steps if s.status != "skipped")
+        done = sum(1 for s in self.steps if s.status == "done")
+        return done, total
+
+    # ------------------------------------------------------------------
+    # Summary
+    # ------------------------------------------------------------------
+
+    def summary(self) -> str:
+        """Human-readable Markdown progress table."""
+        done, total = self.progress
+        lines = [
+            f"## Analysis Plan — {self.paradigm} ({done}/{total} steps done)\n",
+            "| # | Step | Category | Status |",
+            "|---|------|----------|--------|",
+        ]
+        for i, s in enumerate(self.steps):
+            status_icon = {"done": "✅", "skipped": "⏭️", "pending": "⬜"}[s.status]
+            extra = ""
+            if s.conditional:
+                extra = " _(conditional)_"
+            if s.skip_reason:
+                extra += f" — {s.skip_reason}"
+            lines.append(f"| {i} | {s.name} | {s.category} | {status_icon} {s.status}{extra} |")
+
+        nxt = self.next_step()
+        if nxt:
+            lines.append(f"\n**Next step:** {nxt.name} (`{nxt.id}`)")
+
+        return "\n".join(lines)
+
+    # ------------------------------------------------------------------
+    # Persistence
+    # ------------------------------------------------------------------
+
+    def save(self, project_dir: Path | str) -> Path:
+        """Write the DAG to ``.scagent/dag.json``."""
+        p = Path(project_dir)
+        p.mkdir(parents=True, exist_ok=True)
+        path = p / self.FILENAME
+        data = {
+            "paradigm": self.paradigm,
+            "steps": [asdict(s) for s in self.steps],
+        }
+        path.write_text(json.dumps(data, indent=2), encoding="utf-8")
+        return path
+
+    @classmethod
+    def load(cls, project_dir: Path | str) -> "AnalysisDAG":
+        """Load a DAG from ``.scagent/dag.json``."""
+        p = Path(project_dir) / cls.FILENAME
+        data = json.loads(p.read_text(encoding="utf-8"))
+        steps = [DAGStep(**s) for s in data["steps"]]
+        return cls(data["paradigm"], steps)
+
+    # ------------------------------------------------------------------
+    # Private
+    # ------------------------------------------------------------------
+
+    def _get(self, step_id: str) -> DAGStep:
+        step = self._step_index.get(step_id)
+        if step is None:
+            raise ValueError(f"No step with id '{step_id}' in DAG")
+        return step
+
+    def _deps_met(self, step: DAGStep) -> bool:
+        """Check if all dependencies are done or skipped."""
+        for dep_id in step.depends_on:
+            dep = self._step_index.get(dep_id)
+            if dep is None:
+                return False
+            if dep.status not in ("done", "skipped"):
+                return False
+        return True
