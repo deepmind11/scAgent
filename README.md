@@ -65,7 +65,7 @@ scAgent passes **6 out of 7** canonical tasks (85.7%) on [SC-Bench](https://gith
 | Clustering | ✅ Pass |
 | Cell Type Annotation | ✅ Pass |
 | Differential Expression | ✅ Pass |
-| Trajectory Analysis | ❌ Fail (not yet implemented) |
+| Trajectory Analysis | ❌ Fail (tools not yet implemented) |
 
 <details>
 <summary>Reproduce the evaluation</summary>
@@ -104,7 +104,7 @@ The evaluations use [SC-Bench](https://github.com/latchbio/scbench) by [LatchBio
 
 ### 30+ Analysis Tools
 
-Full pipeline from raw counts to publication: QC → normalization → HVG → PCA → batch integration (Harmony, scVI, BBKNN, Scanorama) → clustering (Leiden/Louvain) → cell type annotation (CellTypist) → differential expression (pseudobulk DESeq2/edgeR, Wilcoxon) → pathway enrichment (GSEA, ClusterProfiler) → cell communication (CellChat, CellPhoneDB) → trajectory (Monocle3, Slingshot, scVelo, PAGA).
+Full pipeline from raw counts to publication: QC → normalization → HVG → PCA → batch integration (Harmony, scVI, BBKNN, Scanorama) → clustering (Leiden/Louvain) → cell type annotation (CellTypist) → differential expression (pseudobulk DESeq2/edgeR, Wilcoxon) → pathway enrichment (GSEA, ClusterProfiler) → cell communication (CellChat, CellPhoneDB). Trajectory analysis tools (Monocle3, Slingshot, scVelo, PAGA) have JSON schemas defined but are not yet implemented.
 
 Each tool is defined by a JSON schema in [`tools/`](tools/) with parameter types, constraints, and literature-backed defaults.
 
