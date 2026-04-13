@@ -3,6 +3,7 @@ name = "scagent"
 version = "0.1.0"
 description = "Agentic single-cell RNA-seq analysis system for 10x Genomics Chromium"
 requires-python = ">=3.11"
+license = {text = "MIT"}
 dependencies = [
     "scanpy>=1.10",
     "anndata>=0.10",

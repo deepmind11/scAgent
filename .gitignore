@@ -5,6 +5,7 @@ __pycache__/
 dist/
 build/
 .eggs/
+.pytest_cache/
 
 # Virtual environments
 .venv/
@@ -19,8 +20,10 @@ data/
 # scAgent runtime state
 .scagent/
 
-# pi sessions (personal, don't share)
+# pi sessions and auth (personal, don't share)
 .pi/sessions/
+.pi/auth.json
+.pi/bin/
 
 # OS
 .DS_Store
@@ -31,11 +34,14 @@ Thumbs.db
 .vscode/
 *.swp
 *.swo
+.ropeproject/
 
-# pi auth (personal credentials)
-.pi/auth.json
-.pi/bin/
-
-# Build artifacts
-*.egg-info/
+# Internal dev artifacts
+.ralph/
 .eval_cache/
+.eval_workspace/
+notes/
+PLAN.md
+
+# Copyrighted PDFs (download separately, see README)
+*.pdf
