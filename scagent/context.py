@@ -307,15 +307,17 @@ class ExperimentContext:
     # ------------------------------------------------------------------
 
     def save(self) -> Path:
-        """Write to ``.scagent/project.json``."""
+        """Write to ``.scagent/project.json`` and ensure palace exists."""
         self._dir.mkdir(parents=True, exist_ok=True)
         self._path.write_text(
             json.dumps(self._data, indent=2, default=str), encoding="utf-8"
         )
+        self._ensure_palace()
         return self._path
 
     def _load(self) -> None:
         self._data = json.loads(self._path.read_text(encoding="utf-8"))
+        self._ensure_palace()
 
     @classmethod
     def load(cls, path: Path | str) -> "ExperimentContext":
@@ -323,6 +325,39 @@ class ExperimentContext:
         if p.name == cls.FILENAME:
             p = p.parent
         return cls(p)
+
+    # ------------------------------------------------------------------
+    # Memory (MemPalace auto-init)
+    # ------------------------------------------------------------------
+
+    _memory: Any = None  # type: ProjectMemory | None
+
+    @property
+    def memory(self) -> Any:
+        """Return the ProjectMemory instance, creating it on first access."""
+        if self._memory is None:
+            self._ensure_palace()
+        return self._memory
+
+    def _ensure_palace(self) -> None:
+        """Create the palace directory and ProjectMemory if it doesn't exist.
+
+        Called automatically on load and save so memory is always available.
+        """
+        if self._memory is not None:
+            return
+        palace_path = self._dir / "palace"
+        project_name = (
+            self._data.get("project_name")
+            or self._data.get("project_id")
+            or "scagent"
+        )
+        try:
+            from scagent.memory import ProjectMemory
+            self._memory = ProjectMemory(palace_path, project_name=project_name)
+        except Exception:
+            # Don't break context loading if mempalace isn't available
+            pass
 
     # ------------------------------------------------------------------
     # Private helpers

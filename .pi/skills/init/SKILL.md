@@ -126,6 +126,28 @@ dag = AnalysisDAG.from_context(ctx)
 dag.mark_precomputed_from_state(state)
 ```
 
+## Memory (automatic)
+
+When ``ExperimentContext`` loads or saves, it automatically creates a ``ProjectMemory`` backed by a ChromaDB palace at ``.scagent/palace/``.  **No manual init is needed.**
+
+Access memory through the context object:
+
+```python
+ctx = ExperimentContext(Path(".scagent"))
+# ctx.memory is now a ready-to-use ProjectMemory instance
+
+ctx.memory.store_decision("Use resolution 0.8", "NK markers clean", branch="main")
+hits = ctx.memory.recall("clustering resolution")
+```
+
+On session start, if a palace exists, search for prior context:
+
+```python
+hits = ctx.memory.recall("last session summary")
+if hits:
+    # Tell the user what was recovered
+```
+
 ## Rules
 
 - **Never silently default to cell_atlas.** If paradigm is unknown, ask — or let the user's question drive the analysis.

@@ -55,13 +55,13 @@ Four pillars:
          │                 │                 │
     ┌────┴────┐     ┌──────┴──────┐   ┌─────┴─────┐
     │ MEMORY  │     │  KNOWLEDGE  │   │ EXPERIMENT│
-    │ PALACE  │     │  GRAPH      │   │ CONTEXT   │
-    │(mempal.)│     │ (graphify)  │   │ (minSCe)  │
-    │         │     │             │   │           │
-    │ Chat    │     │ Papers      │   │ Species   │
-    │ history │     │ Protocols   │   │ Platform  │
-    │ across  │     │ Marker DBs  │   │ Tissue    │
-    │ months  │     │             │   │ Chemistry │
+    │ PALACE  │     │  MarkerDB + │   │ CONTEXT   │
+    │(mempal.)│     │  best prac- │   │ (minSCe)  │
+    │         │     │  tice refs  │   │           │
+    │ Chat    │     │             │   │ Species   │
+    │ history │     │ Canonical + │   │ Platform  │
+    │ across  │     │ CellTypist +│   │ Tissue    │
+    │ months  │     │ User DBs   │   │ Chemistry │
     └─────────┘     └─────────────┘   └───────────┘
 ```
 
@@ -189,64 +189,43 @@ Each tool is registered with its capabilities, valid paradigms, step placement, 
 }
 ```
 
-### Tool Categories and Registry Structure
+### Tool Registry Structure
+
+All 31 tool schemas live flat in `tools/` — no subdirectories. Categories are encoded in each schema's `category` field, not the filesystem. This keeps the registry simple to enumerate and extend.
 
 ```
 tools/
-├── raw_processing/
-│   └── cellranger_multi.json
-├── qc/
-│   ├── filter_cells.json
-│   ├── filter_genes.json
-│   ├── scrublet_doublets.json
-│   ├── scdbl_finder.json
-│   ├── cellbender_ambient.json
-│   └── soupx_ambient.json
-├── normalization/
-│   ├── sctransform.json
-│   ├── scran_pooling.json
-│   ├── log_normalize.json
-│   └── pearson_residuals.json
-├── feature_selection/
-│   └── highly_variable_genes.json
-├── dimensionality_reduction/
-│   ├── pca.json
-│   ├── umap.json
-│   └── tsne.json
-├── integration/
-│   ├── harmony.json
-│   ├── scvi.json
-│   ├── scanorama.json
-│   └── bbknn.json
-├── clustering/
-│   ├── leiden.json
-│   ├── louvain.json
-│   └── kmeans.json
-├── annotation/
-│   ├── celltypist.json
-│   ├── azimuth.json
-│   ├── singler.json
-│   └── cellranger_annotation.json
-├── differential_expression/
-│   ├── wilcoxon_markers.json
-│   ├── deseq2_pseudobulk.json
-│   └── edger_pseudobulk.json
-├── trajectory/
-│   ├── monocle3.json
-│   ├── paga.json
-│   ├── slingshot.json
-│   └── scvelo.json
-├── communication/
-│   ├── cellchat.json
-│   ├── cellphonedb.json
-│   └── nichenet.json
-├── enrichment/
-│   ├── gsea.json
-│   ├── cluster_profiler.json
-│   └── fgsea.json
-└── composition/
-    ├── sccoda.json
-    └── milor.json
+├── load_10x_h5.json          # loading
+├── filter_cells.json          # qc
+├── filter_genes.json          # qc
+├── scrublet_doublets.json     # qc
+├── log_normalize.json         # normalization
+├── highly_variable_genes.json # feature_selection
+├── pca.json                   # dimensionality_reduction
+├── umap.json                  # dimensionality_reduction
+├── neighbors.json             # graph
+├── harmony.json               # integration
+├── scvi.json                  # integration
+├── scanorama.json             # integration
+├── bbknn.json                 # integration
+├── leiden.json                # clustering
+├── louvain.json               # clustering
+├── celltypist.json            # annotation
+├── validate_annotation.json   # annotation
+├── query_markers.json         # annotation
+├── wilcoxon_markers.json      # differential_expression
+├── deseq2_pseudobulk.json     # differential_expression
+├── edger_pseudobulk.json      # differential_expression
+├── monocle3.json              # trajectory
+├── paga.json                  # trajectory
+├── slingshot.json             # trajectory
+├── scvelo.json                # trajectory
+├── cellchat.json              # communication
+├── cellphonedb.json           # communication
+├── gsea.json                  # enrichment
+├── cluster_profiler.json      # enrichment
+├── sccoda.json                # composition
+└── milor.json                 # composition
 ```
 
 ---
@@ -538,9 +517,9 @@ Each "state" is an AnnData snapshot identified by a content hash. We don't copy 
 │   └── harmony_corrected/
 │       └── ...
 ├── tools/                          # tool registry (local overrides)
-├── knowledge/                      # graphify output
-│   ├── graph.json
-│   └── GRAPH_REPORT.md
+├── knowledge/                      # MarkerDB user databases
+│   ├── cellmarker2.xlsx            # optional CellMarker 2.0
+│   └── panglaodb.tsv               # optional PanglaoDB
 └── memory/                         # mempalace data
     └── palace.db
 ```
@@ -587,21 +566,26 @@ results = mempalace.search("why did we choose resolution 1.0", wing="pbmc_aging"
 #   discussed marker genes and decided 0.8 was too coarse
 ```
 
-### 8.2 Graphify Integration (Knowledge Graph for Papers & Protocols)
+### 8.2 MarkerDB + Best Practice References (Domain Knowledge)
 
-When the researcher drops papers, protocols, or marker gene references into the project:
+Knowledge is structured, not a generic knowledge graph. Two components:
+
+**MarkerDB** (`knowledge.py`) — 3-tier marker gene lookup:
+1. Built-in canonical markers (always available, no download)
+2. CellTypist model extraction (61 trained models, ~50 MB each)
+3. User-supplied databases (CellMarker 2.0 xlsx, PanglaoDB TSV in `.scagent/knowledge/`)
 
 ```
-> /knowledge add ~/papers/pbmc_aging_smith_2024.pdf
-  Graphify processing... extracted 47 concepts, 82 relationships
-  Key entities: CD4_naive_decline, inflammaging, SASP_program
-  Connected to existing graph: links to "monocyte_inflammatory" (from earlier paper)
+> /knowledge query "NK cells"
+  Canonical: NKG7, GNLY, PRF1, GZMB, KLRD1, NCAM1 (CD56)
+  CellTypist (Immune_All_Low): NKG7 (rank=1), GNLY (rank=2), GZMB (rank=3)
+  Confidence: HIGH (sources agree)
 
-> /knowledge query "what markers define age-associated B cells"
-  From Smith et al. 2024: T-bet+, CD11c+, CD21-
-  From Zhou et al. 2023: ITGAX, TBX21, CR2 (low)
-  Confidence: EXTRACTED (both papers agree)
+> /knowledge validate --markers GNLY,NKG7,GZMB,PRF1 --label "NK cells"
+  Match: 4/6 canonical markers, overlap=67%, confidence=HIGH
 ```
+
+**Best practice references** (`best_practices/reference/`, 12 Markdown files) — distilled literature-backed guidance per analysis step, sourced from Heumos et al. 2023, 10x Genomics Analysis Guide 2025, and sc-best-practices.org. Loaded into agent context via skills on demand. Backed by two full PDFs.
 
 ### 8.3 Context Window Management
 
@@ -814,7 +798,7 @@ scAgent addresses all four by construction — the experiment context tells the 
 | Analysis core | Scanpy (Python) | Primary analysis framework |
 | R bridge | rpy2 or subprocess | For Seurat, DESeq2, edgeR when needed |
 | Chat memory | MemPalace (ChromaDB) | Long-term conversation storage |
-| Knowledge graph | Graphify (NetworkX + Claude) | Paper/protocol knowledge |
+| Knowledge | MarkerDB + best_practices/reference/ | Marker genes + literature-backed guidance |
 | Provenance | Custom PROV-JSONLD writer | Lineage tracking |
 | State snapshots | AnnData .h5ad + SHA256 | Branched analysis states |
 | Tool registry | JSON schemas | Tool capabilities and constraints |
@@ -842,7 +826,7 @@ scAgent addresses all four by construction — the experiment context tells the 
 ### Phase 3: Exploration (Weeks 7-9)
 - [ ] Branch/fork/compare workflow
 - [ ] Multiple resolution sweep with comparison view
-- [ ] Graphify integration for paper knowledge
+- [ ] Expand MarkerDB with tissue-specific databases
 - [ ] Cell annotation pipeline with validation
 - [ ] DE pipeline (markers + pseudobulk)
 
