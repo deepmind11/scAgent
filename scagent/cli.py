@@ -1,8 +1,9 @@
 """scAgent CLI — launch the single-cell RNA-seq analysis agent.
 
 This finds the scAgent project root (where .pi/SYSTEM.md lives),
-then launches pi-coding-agent from that directory so it auto-discovers
-the system prompt, skills, and settings.
+ensures the agent runtime (pi-coding-agent) is available, then
+launches it from the project directory so it auto-discovers the
+system prompt, skills, and settings.
 
 Auth is stored in ~/.pi/agent/auth.json (managed by /login in the REPL).
 """
@@ -42,23 +43,65 @@ def find_scagent_root() -> Path:
     sys.exit(1)
 
 
+def check_node() -> bool:
+    """Check if Node.js ≥20.19 is available."""
+    node = shutil.which("node")
+    if not node:
+        return False
+    try:
+        result = subprocess.run(
+            [node, "--version"], capture_output=True, text=True, timeout=5
+        )
+        version = result.stdout.strip().lstrip("v")
+        parts = [int(x) for x in version.split(".")[:2]]
+        return parts[0] > 20 or (parts[0] == 20 and parts[1] >= 19)
+    except Exception:
+        return False
+
+
+def install_pi_coding_agent() -> bool:
+    """Attempt to install pi-coding-agent globally via npm."""
+    npm = shutil.which("npm")
+    if not npm:
+        return False
+    print("Installing pi-coding-agent...", file=sys.stderr)
+    try:
+        result = subprocess.run(
+            [npm, "install", "-g", "@mariozechner/pi-coding-agent"],
+            timeout=120,
+        )
+        return result.returncode == 0
+    except Exception:
+        return False
+
+
 def find_pi_cli() -> list[str]:
-    """Find the pi CLI. Returns the command as a list."""
+    """Find the pi CLI, installing it if necessary. Returns the command."""
     # 1. pi in PATH
     pi_path = shutil.which("pi")
     if pi_path:
         return [pi_path]
 
-    # 2. npx fallback
-    npx_path = shutil.which("npx")
-    if npx_path:
-        return [npx_path, "--yes", "@mariozechner/pi-coding-agent"]
+    # 2. Node.js available? Try to install pi-coding-agent
+    if check_node():
+        npx_path = shutil.which("npx")
 
-    print("Error: Could not find pi or npx.", file=sys.stderr)
+        # Try global install
+        if install_pi_coding_agent():
+            pi_path = shutil.which("pi")
+            if pi_path:
+                return [pi_path]
+
+        # Fall back to npx
+        if npx_path:
+            print("Using npx to run pi-coding-agent...", file=sys.stderr)
+            return [npx_path, "--yes", "@mariozechner/pi-coding-agent"]
+
+    # 3. Nothing works
+    print("Error: Node.js (≥20.19) is required but not found.", file=sys.stderr)
     print("", file=sys.stderr)
-    print("Install Node.js (≥20.19) from https://nodejs.org, then either:", file=sys.stderr)
-    print("  npm install -g @mariozechner/pi-coding-agent   # global install", file=sys.stderr)
-    print("  npx @mariozechner/pi-coding-agent              # no install needed", file=sys.stderr)
+    print("Install Node.js from https://nodejs.org, then rerun scagent.", file=sys.stderr)
+    print("The agent runtime will be installed automatically.", file=sys.stderr)
     sys.exit(1)
 
 

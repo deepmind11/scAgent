@@ -16,24 +16,20 @@ scAgent is an AI assistant that helps wet-lab biologists perform, understand, an
 ## Prerequisites
 
 - **Python ≥ 3.11**
-- **Node.js ≥ 20.19** — needed for the agent runtime ([install](https://nodejs.org))
+- **Node.js ≥ 20.19** — [install](https://nodejs.org) (the agent runtime needs it)
 - A **Claude subscription** (Pro/Max) — no API key needed, authenticate via OAuth
 
 ## Installation
 
 ```bash
-# Install the agent runtime (one-time, or just use npx)
-npm install -g @mariozechner/pi-coding-agent
-
-# Clone the repo
 git clone https://github.com/deepmind11/scAgent.git
 cd scAgent
-
-# Create a virtual environment and install
 python -m venv .venv
 source .venv/bin/activate
 pip install -e .
 ```
+
+That's it. The `scagent` command auto-installs the agent runtime ([pi-coding-agent](https://www.npmjs.com/package/@mariozechner/pi-coding-agent)) on first run if Node.js is available.
 
 ## Quick start
 
