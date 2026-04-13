@@ -265,18 +265,22 @@ Skills to create:
 ---
 
 ### Chunk 9: Memory Integration
-**Goal:** Cross-session context persistence.
+**Goal:** Cross-session context persistence via MemPalace.
 
-Two options:
-- **MemPalace** — as designed in architecture. Requires checking if [github.com/milla-jovovich/mempalace](https://github.com/milla-jovovich/mempalace) actually exists and works.
-- **Fallback** — Use pi's built-in memory package (`@samfp/pi-memory`) which is already installed in Feynman. Simpler, already works.
-
-- [ ] Evaluate MemPalace: does it exist? Is it usable? Does it add value over pi-memory?
-- [ ] If MemPalace works: integrate it for conversation history across sessions
-- [ ] If not: use pi-memory for key facts + session summaries stored in `.scagent/memory/`
-- [ ] Cross-session continuity: on startup, load last session summary + experiment context
+- [x] MemPalace v3.1.0 ships with scAgent (`pyproject.toml` dependency)
+- [x] `scagent/memory.py` (~250 LOC) — thin wrapper, branch as metadata tag
+  - `store()` / `store_exchange()` / `store_step()` / `store_decision()`
+  - `recall(query, branch="main")` — current branch
+  - `recall(query, branch=None)` — cross-branch search
+  - `recall(query, branch="other")` — specific other branch
+- [x] `hooks/scagent_save_hook.sh` — auto-save every 15 exchanges
+- [x] `hooks/scagent_precompact_hook.sh` — emergency save before compaction
+- [x] `.pi/skills/memory/SKILL.md` — when to store/recall, branching, hooks
+- [x] `tests/test_memory.py` — 42 tests
 
 **Deliverable:** Researcher can close scAgent and come back days later. The agent remembers what was done and why.
+
+**Status: ✅ DONE** — 177 unit tests pass.
 
 ---
 
