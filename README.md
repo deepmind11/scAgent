@@ -142,15 +142,6 @@ Share the reproducibility package with a collaborator or reviewer and they can r
 
 scAgent explains what it's doing and why at every step. It presents QC distributions and plots, shows parameter choices with rationale, displays top marker genes per cluster with supporting evidence, and asks for confirmation before advancing. No programming knowledge is assumed.
 
-## Coming Soon
-
-- **Trajectory inference** — Monocle 3, PAGA, scVelo tool implementations
-- **Perturbation analysis** — guide assignment and perturbation effect quantification for CRISPR screens
-- **Immune repertoire** — V(D)J / TCR / BCR analysis integration
-- **Multi-modal** — CITE-seq protein + RNA analysis (WNN)
-- **Composition analysis** — scCODA, miloR for differential abundance testing
-- **Full SC-Bench evaluation** — run against all 394 tasks (currently limited to 7 canonical)
-
 ## Project Structure
 
 ```
@@ -213,6 +204,15 @@ See [outputs/architecture.md](outputs/architecture.md) for the full system desig
 - [Feynman](https://github.com/getcompanion-ai/feynman) — agent runtime
 - [Scanpy](https://scanpy.readthedocs.io/) — core analysis engine
 - [CellTypist](https://www.celltypist.org/) — cell type annotation
+
+## Coming Soon
+
+- **Trajectory inference** — Monocle 3, PAGA, scVelo tool implementations
+- **Perturbation analysis** — guide assignment and perturbation effect quantification for CRISPR screens
+- **Immune repertoire** — V(D)J / TCR / BCR analysis integration
+- **Multi-modal** — CITE-seq protein + RNA analysis (WNN)
+- **Composition analysis** — scCODA, miloR for differential abundance testing
+- **Full SC-Bench evaluation** — run against all 394 tasks (currently limited to 7 canonical)
 
 ## License
 
