@@ -12,6 +12,7 @@ scAgent is an AI assistant that helps wet-lab biologists perform, understand, an
   curl -fsSL https://feynman.is/install | bash
   feynman setup   # authenticate with your Claude subscription
   ```
+- *Optional:* **[Claude Code](https://docs.anthropic.com/en/docs/claude-code)** — also works as the agent runtime (scAgent's `.pi/` config is compatible with any pi-based agent)
 
 ## Installation
 
