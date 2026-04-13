@@ -17,7 +17,7 @@ scAgent is an AI assistant that helps wet-lab biologists perform, understand, an
 
 - **Python ≥ 3.11**
 - **Node.js ≥ 20.19** — needed for the agent runtime ([install](https://nodejs.org))
-- An **Anthropic API key** — set `ANTHROPIC_API_KEY` in your environment
+- A **Claude subscription** (Pro/Max) — no API key needed, authenticate via OAuth
 
 ## Installation
 
@@ -31,19 +31,27 @@ python -m venv .venv
 source .venv/bin/activate
 pip install -e .
 
-# Install the agent runtime (one-time)
+# Install the agent runtime (one-time, or just use npx)
 npm install -g @mariozechner/pi-coding-agent
 ```
-
-> **No npm?** The launcher script can also run via `npx` (comes with Node.js), so a global install is optional.
 
 ## Quick start
 
 ```bash
 # Launch scAgent
 ./scagent.sh
+```
 
-# Or with specific model settings
+On first launch, authenticate with your Claude subscription:
+```
+> /login
+# Opens your browser → sign in with your Claude account → done
+```
+
+This is a one-time step. Your credentials are stored locally in `~/.pi/agent/auth.json` and auto-refresh.
+
+```bash
+# Or with specific model/thinking settings
 ./scagent.sh --model opus --thinking max
 
 # You can also run pi directly from the project directory
