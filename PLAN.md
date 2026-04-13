@@ -246,15 +246,21 @@ Skills to create:
 ### Chunk 8: DE Pipeline (Pseudobulk)
 **Goal:** Cross-condition differential expression using pseudobulk.
 
-- [ ] Skills:
-  - `.pi/skills/pseudobulk-de/SKILL.md` — aggregate to pseudobulk, run DESeq2/edgeR
-  - `.pi/skills/pathway-enrichment/SKILL.md` — GSEA, clusterProfiler
-- [ ] Tool registry entries for DESeq2 (via rpy2 or subprocess) and edgeR
-- [ ] DAG enforcement: in `disease_vs_healthy` paradigm, DE step MUST use pseudobulk
-
-This is where scBench's DE evals (41% accuracy for best model) should improve — by structurally preventing the cell-as-replicate error.
+- [x] `scagent/tools/pseudobulk_de.py` (~400 LOC)
+  - `aggregate_pseudobulk()` — sum raw counts per cell_type × sample
+  - `run_pseudobulk_de()` — PyDESeq2 per cell type + guard rails + volcano plots
+  - Refuses <2 replicates, warns <3, auto-contrast from condition levels
+- [x] `scagent/tools/enrichment.py` (~180 LOC)
+  - `run_gsea()` — GSEApy prerank per cell type from DE results
+- [x] `.pi/skills/pseudobulk-de/SKILL.md` — pseudobulk enforcement + guard rails
+- [x] `.pi/skills/pathway-enrichment/SKILL.md` — gene set choices + GSEA behavior
+- [x] `tests/test_pseudobulk_de.py` — 13 tests (aggregation + DE + guard rails)
+- [x] `tests/test_enrichment.py` — 7 tests (ranking + GSEA)
+- [x] `tests/test_de_integration.py` — full pipeline: 64/80 true DE genes recovered
 
 **Deliverable:** scAgent correctly runs pseudobulk DE on multi-condition data.
+
+**Status: ✅ DONE** — 135 unit tests pass. Synthetic 6-donor experiment: precision=1.0, recall=0.8 on injected DE signal.
 
 ---
 
