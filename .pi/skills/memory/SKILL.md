@@ -79,6 +79,30 @@ Two hooks auto-trigger saves (install via ``.claude/settings.local.json``):
 When a hook fires, save to MemPalace using the methods above.  Always tag
 with the current branch.
 
+## Compaction protocol
+
+When the **precompact hook** fires, save in this priority order:
+
+1. **Experiment context** — species, tissue, paradigm, conditions, platform
+2. **Current branch + DAG position** — what's done, what step is next
+3. **Data state** — cell count, cluster count, key `.obs` columns
+4. **Key decisions + rationale** — why resolution X, why pseudobulk, rejected alternatives
+5. **Open questions** — what the user asked that isn't resolved yet
+
+Use ``store_decision()`` for items 4–5.  Use ``store_exchange()`` for a
+short summary of the session so far.
+
+When the **save hook** fires (every 15 exchanges), save only items 4 and
+any new tool results (``store_step()``).  Don't re-save context that hasn't
+changed.
+
+**After compaction / on session cold-start:**
+
+1. ``recall("experiment context", branch=current)``
+2. ``recall("current DAG position", branch=current)``
+3. ``recall("recent decisions", branch=current, n_results=5)``
+4. Tell the user what was recovered
+
 ## What to tell the user
 
 **On session start (if memory exists):**

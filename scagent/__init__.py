@@ -8,6 +8,7 @@ from scagent.context import ExperimentContext
 from scagent.dag import AnalysisDAG
 from scagent.memory import ProjectMemory
 from scagent.knowledge import MarkerDB
+from scagent.export import generate_methods, generate_repro_package
 
 __all__ = [
     "ProvenanceGraph", "record_step", "record_custom",
@@ -15,4 +16,5 @@ __all__ = [
     "ExperimentContext", "AnalysisDAG",
     "ProjectMemory",
     "MarkerDB",
+    "generate_methods", "generate_repro_package",
 ]
