@@ -29,7 +29,7 @@ source .venv/bin/activate
 pip install -e .
 ```
 
-That's it. The `scagent` command auto-installs the agent runtime ([pi-coding-agent](https://www.npmjs.com/package/@mariozechner/pi-coding-agent)) on first run if Node.js is available.
+On first run, `scagent` will install the agent runtime ([pi-coding-agent](https://www.npmjs.com/package/@mariozechner/pi-coding-agent)) automatically if Node.js is available. Subsequent launches are instant.
 
 ## Quick start
 
