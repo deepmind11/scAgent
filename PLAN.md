@@ -284,18 +284,24 @@ Skills to create:
 
 ---
 
-### Chunk 10: Knowledge Graph
-**Goal:** Paper and marker gene database integration.
+### Chunk 10: Knowledge (Marker Gene Database)
+**Goal:** Marker gene lookup and annotation validation.
 
-- [ ] Evaluate Graphify: does [github.com/safishamsi/graphify](https://github.com/safishamsi/graphify) exist and work?
-- [ ] If Graphify works: integrate for paper processing
-- [ ] If not: build a simpler marker database system
-  - Load CellMarker 2.0, PanglaoDB, CellTypist models
-  - Skill: `.pi/skills/knowledge/SKILL.md` — query marker databases, add papers
-- [ ] `/knowledge add paper.pdf` command
-- [ ] `/knowledge query "markers for CD8 effector T cells"` command
+- [x] Skipped Graphify — overkill for marker gene queries, wrong abstraction
+- [x] `scagent/knowledge.py` (~600 LOC) — MarkerDB with 3 sources:
+  - Built-in canonical: ~30 curated cell types (PBMC/immune, human+mouse)
+  - CellTypist `extract_top_markers()`: 98 immune subtypes via Immune_All_Low
+  - External: auto-load CellMarker 2.0 xlsx / PanglaoDB TSV from `.scagent/knowledge/`
+- [x] `query(cell_type)` → ranked markers with source attribution
+- [x] `validate_annotation(cluster_markers, label)` → confidence + alternatives
+- [x] 50+ cell type aliases, species alias handling (Hs/Mm/human/mouse)
+- [x] Tool wrappers: `query_markers`, `validate_annotation` + JSON registry
+- [x] `.pi/skills/knowledge/SKILL.md`
+- [x] `tests/test_knowledge.py` — 51 tests
 
-**Deliverable:** scAgent can look up marker genes from databases and papers. Cell annotation quality improves.
+**Deliverable:** scAgent can look up marker genes and validate cell type annotations against multiple databases.
+
+**Status: ✅ DONE** — 228 core unit tests pass.
 
 ---
 
