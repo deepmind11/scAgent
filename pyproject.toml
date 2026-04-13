@@ -13,6 +13,9 @@ dependencies = [
     "scikit-learn",
     "matplotlib",
     "seaborn",
+    "mempalace>=3.0",
+    "pydeseq2>=0.5",
+    "gseapy>=1.0",
 ]
 
 [tool.setuptools.packages.find]
