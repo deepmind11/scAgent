@@ -22,17 +22,17 @@ scAgent is an AI assistant that helps wet-lab biologists perform, understand, an
 ## Installation
 
 ```bash
+# Install the agent runtime (one-time, or just use npx)
+npm install -g @mariozechner/pi-coding-agent
+
 # Clone the repo
 git clone https://github.com/deepmind11/scAgent.git
 cd scAgent
 
-# Create a virtual environment and install Python dependencies
+# Create a virtual environment and install
 python -m venv .venv
 source .venv/bin/activate
 pip install -e .
-
-# Install the agent runtime (one-time, or just use npx)
-npm install -g @mariozechner/pi-coding-agent
 ```
 
 ## Quick start
