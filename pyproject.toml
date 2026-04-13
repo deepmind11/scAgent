@@ -43,6 +43,9 @@ dependencies = [
     "gseapy>=1.0",
 ]
 
+[project.scripts]
+scagent = "scagent.cli:main"
+
 [project.urls]
 Homepage = "https://github.com/deepmind11/scAgent"
 Repository = "https://github.com/deepmind11/scAgent"

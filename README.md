@@ -38,8 +38,8 @@ npm install -g @mariozechner/pi-coding-agent
 ## Quick start
 
 ```bash
-# Launch scAgent
-./scagent.sh
+# Launch scAgent (works from anywhere)
+scagent
 ```
 
 On first launch, authenticate with your Claude subscription:
@@ -51,11 +51,14 @@ On first launch, authenticate with your Claude subscription:
 This is a one-time step. Your credentials are stored locally in `~/.pi/agent/auth.json` and auto-refresh.
 
 ```bash
-# Or with specific model/thinking settings
-./scagent.sh --model opus --thinking max
+# With specific model/thinking settings
+scagent --model opus --thinking max
 
-# You can also run pi directly from the project directory
-cd scAgent && pi
+# Continue a previous session
+scagent -c
+
+# Resume/pick a session
+scagent -r
 ```
 
 On first launch, scAgent will ask you about your experiment:
@@ -96,7 +99,7 @@ scAgent/
 │   └── reference/        #   Per-step best practice summaries
 ├── eval/                 # Evaluation & benchmarking framework
 ├── tests/                # Unit and integration tests
-├── scagent.sh            # Launcher script
+├── scagent/cli.py        # CLI entry point (`scagent` command)
 └── pyproject.toml        # Package metadata & dependencies
 ```
 
