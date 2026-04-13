@@ -109,6 +109,10 @@ adata, results = run_preprocessing(
 )
 ```
 
+## Best Practice Reference
+
+Before recommending thresholds or making QC decisions, load and consult `best_practices/reference/qc.md` for literature-backed guidance on filtering strategies, ambient RNA correction, and per-sample QC.
+
 ## Parameters Reference
 
 See `tools/filter_cells.json` and `tools/filter_genes.json` for full parameter schemas.

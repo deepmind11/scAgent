@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 import anndata as ad
-import scanpy as sc
-from scagent.tools.normalize import log_normalize
+from scagent.inspector import inspect_adata
+from scagent.dependencies import ensure_ready_for
 from scagent.tools.feature_selection import select_hvg
 
 
@@ -13,10 +13,8 @@ def handle_hvg(adata: ad.AnnData, task_prompt: str) -> dict:
     The eval checks whether canonical biological markers are recovered
     in the HVG set (precision=0, so extra genes are fine).
     """
-    # Data may already be normalized (check max value)
-    if adata.X.max() > 50:
-        # Raw counts — normalize first
-        log_normalize(adata)
+    state = inspect_adata(adata)
+    ensure_ready_for(adata, state, needs="log_normalized")
 
     # Select HVGs
     select_hvg(adata, n_top_genes=2000)

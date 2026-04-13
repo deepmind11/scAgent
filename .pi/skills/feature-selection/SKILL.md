@@ -41,6 +41,10 @@ result = select_hvg(adata, n_top_genes=2000, plot_dir="data/working/plots")
 
 Suggest PCA: "HVGs selected. Next I'll run PCA to reduce the dimensionality — this captures the main axes of variation in 50 components."
 
+## Best Practice Reference
+
+Load `best_practices/reference/feature-selection.md` for benchmark-backed guidance on deviance vs. Seurat v3 HVG methods and gene count recommendations.
+
 ## Parameters Reference
 
 See `tools/highly_variable_genes.json`.

@@ -43,6 +43,10 @@ result = run_umap(adata, random_state=0)
 
 **Show the user:** A UMAP scatter plot colored by cluster labels after Leiden clustering is run.
 
+## Best Practice Reference
+
+Load `best_practices/reference/dimensionality-reduction.md` for guidance on PCA vs. UMAP purposes and critical warnings about UMAP misinterpretation.
+
 ## Parameters Reference
 
 See `tools/pca.json` and `tools/umap.json`.

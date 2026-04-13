@@ -1,3 +1,8 @@
+---
+name: pseudobulk-de
+description: Run cross-condition differential expression using pseudobulk aggregation + DESeq2. Use when comparing conditions (disease vs. healthy, treated vs. control) in scRNA-seq data, or when the user asks for DE between conditions.
+---
+
 # Skill: Pseudobulk Differential Expression
 
 Run cross-condition DE using pseudobulk aggregation + DESeq2. This is the **only** correct method for comparing conditions (disease vs. healthy, treated vs. control) in scRNA-seq data.
@@ -62,3 +67,7 @@ The agent needs these from the experiment context:
 
 **If they ask for Wilcoxon between conditions:**
 > "Wilcoxon rank-sum treats each cell as an independent replicate, which inflates false positives dramatically. For cross-condition comparisons, pseudobulk DESeq2 is the correct method. Shall I run that instead?"
+
+## Best Practice Reference
+
+Load `best_practices/reference/pseudobulk-de.md` for detailed literature-backed guidance on the pseudoreplication problem, method comparison (edgeR vs. DESeq2 vs. MAST), and design matrix construction.

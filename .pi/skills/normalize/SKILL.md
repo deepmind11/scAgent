@@ -71,6 +71,10 @@ These can be added as tool options later. For now, CP10K + log1p is the recommen
 
 Suggest feature selection: "Data is normalized. Next step is selecting highly variable genes (HVGs) — these are the genes with the most biological signal, which we'll use for PCA and clustering."
 
+## Best Practice Reference
+
+Load `best_practices/reference/normalization.md` for a comparison of normalization methods (shifted logarithm, scran, Pearson residuals, SCTransform) and when each is appropriate.
+
 ## Parameters Reference
 
 See `tools/log_normalize.json` for the full parameter schema.

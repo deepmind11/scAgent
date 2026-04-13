@@ -87,6 +87,10 @@ sc.pl.umap(adata, color="leiden", save="_clusters.png")
 
 Suggest marker gene detection: "Now let's find the genes that define each cluster — this will help us identify what cell types they are."
 
+## Best Practice Reference
+
+Load `best_practices/reference/clustering.md` for Leiden vs. Louvain rationale, resolution selection guidance, and graph-based vs. K-means comparison.
+
 ## Parameters Reference
 
 See `tools/leiden.json` and `tools/neighbors.json`.

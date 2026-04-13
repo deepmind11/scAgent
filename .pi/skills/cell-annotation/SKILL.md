@@ -90,6 +90,10 @@ When using CellTypist, always cross-check against markers:
 - Are there clusters where CellTypist disagrees with the markers?
 - Flag any discrepancies and discuss with the user
 
+## Best Practice Reference
+
+Load `best_practices/reference/cell-annotation.md` for the recommended three-step annotation workflow (automated → manual → verification) and guidance on CellTypist, reference mapping, and cross-validation.
+
 ## Parameters Reference
 
 See `tools/celltypist.json` and `tools/wilcoxon_markers.json`.

@@ -20,12 +20,12 @@ def handle_clustering(adata: ad.AnnData, task_prompt: str) -> dict:
     if cell_type_col not in adata.obs.columns:
         raise ValueError("cell_type column not found in adata.obs")
 
-    # Preprocessing
-    if "raw_counts" in adata.layers:
-        adata.X = adata.layers["raw_counts"].copy()
+    # Preprocessing — use inspector to handle any data state
+    from scagent.inspector import inspect_adata
+    from scagent.dependencies import ensure_ready_for
 
-    sc.pp.normalize_total(adata, target_sum=1e4)
-    sc.pp.log1p(adata)
+    state = inspect_adata(adata)
+    ensure_ready_for(adata, state, needs="log_normalized")
     sc.pp.highly_variable_genes(adata, n_top_genes=2000)
     sc.pp.scale(adata, max_value=10)
     sc.pp.pca(adata, n_comps=50, random_state=0)

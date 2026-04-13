@@ -74,7 +74,10 @@ Run ALL 7 scBench evals below. For each one:
 1. Load the data, inspect it (shape, layers, obs columns, X.max)
 2. Write and run a Python script to solve the task
 3. Save the answer as JSON to `eval/results/llm_{eval_id}.json`
-4. Then run the grader to check if it passes
+4. Then run the grader to check if it passes (Once you run the grader, you cannot go back 
+   and modify your solution, that would be overfitting the eval dataset. We want to get an
+   estimate of how our agentic harness will perform on unseen data.)
+
 
 **Grading command** (run after each eval, replacing EVAL_ID):
 ```bash

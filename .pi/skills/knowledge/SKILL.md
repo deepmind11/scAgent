@@ -1,3 +1,8 @@
+---
+name: knowledge
+description: Query marker genes from curated databases and validate cell type annotations. Use when the user asks about marker genes, wants to verify annotations, or needs canonical markers for a cell type.
+---
+
 # Skill: Knowledge (Marker Gene Database)
 
 Query marker genes from curated databases and validate cell type annotations.

@@ -19,9 +19,12 @@ def handle_trajectory(adata: ad.AnnData, task_prompt: str) -> dict:
     4. DE between the two terminal groups
     5. Return top marker genes
     """
-    # Preprocess
-    sc.pp.normalize_total(adata, target_sum=1e4)
-    sc.pp.log1p(adata)
+    # Preprocess — use inspector to handle any data state
+    from scagent.inspector import inspect_adata
+    from scagent.dependencies import ensure_ready_for
+
+    state = inspect_adata(adata)
+    ensure_ready_for(adata, state, needs="log_normalized")
     adata.raw = adata.copy()
 
     sc.pp.highly_variable_genes(adata, n_top_genes=2000)

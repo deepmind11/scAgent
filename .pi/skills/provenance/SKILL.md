@@ -1,3 +1,8 @@
+---
+name: provenance
+description: Record and query the full lineage of every analysis step. Use after every tool call to record provenance, or when the user asks what was done, what parameters were used, or how to reproduce the analysis.
+---
+
 # Skill: Provenance Tracking
 
 Record and query the full lineage of every analysis step.

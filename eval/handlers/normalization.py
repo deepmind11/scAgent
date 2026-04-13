@@ -12,6 +12,13 @@ def handle_normalization(adata: ad.AnnData, task_prompt: str) -> dict:
     Task: find cell with highest raw count for 'Mrc1', report its
     final normalized+scaled value.
     """
+    # Ensure we start from raw counts
+    from scagent.inspector import inspect_adata
+    from scagent.dependencies import ensure_ready_for
+
+    state = inspect_adata(adata)
+    ensure_ready_for(adata, state, needs="raw_counts")
+
     # Step 1: Find cell with highest raw count for Mrc1 BEFORE normalizing
     gene = "Mrc1"
     if gene not in adata.var_names:

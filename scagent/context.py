@@ -248,12 +248,14 @@ class ExperimentContext:
     # ------------------------------------------------------------------
 
     def validate(self) -> list[str]:
-        """Return a list of validation errors.  Empty list = valid."""
+        """Return a list of validation errors.  Empty list = valid.
+
+        Paradigm is optional — if set, it must be a valid value, but
+        analysis can proceed without one (question-driven mode).
+        """
         errors: list[str] = []
 
-        if not self.paradigm:
-            errors.append("paradigm is required")
-        elif self.paradigm not in VALID_PARADIGMS:
+        if self.paradigm is not None and self.paradigm not in VALID_PARADIGMS:
             errors.append(f"paradigm '{self.paradigm}' is not valid")
 
         if not self.organism.get("species"):

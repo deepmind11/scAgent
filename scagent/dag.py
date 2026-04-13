@@ -209,6 +209,86 @@ class AnalysisDAG:
         """Return a step by ID, or *None*."""
         return self._step_index.get(step_id)
 
+    # ------------------------------------------------------------------
+    # Dynamic modification
+    # ------------------------------------------------------------------
+
+    def add_step(
+        self,
+        step: DAGStep,
+        after: str | None = None,
+    ) -> None:
+        """Add a step to the DAG dynamically.
+
+        Parameters
+        ----------
+        step
+            The new step to add.
+        after
+            Insert after this step ID. If *None*, appends at the end.
+
+        Raises
+        ------
+        ValueError
+            If *step.id* already exists or *after* is not found.
+        """
+        if step.id in self._step_index:
+            raise ValueError(f"Step '{step.id}' already exists in DAG")
+
+        if after is not None:
+            if after not in self._step_index:
+                raise ValueError(f"Step '{after}' not found in DAG")
+            idx = next(i for i, s in enumerate(self.steps) if s.id == after)
+            self.steps.insert(idx + 1, step)
+        else:
+            self.steps.append(step)
+
+        self._step_index[step.id] = step
+
+    def mark_precomputed(self, step_id: str) -> None:
+        """Mark a step as already done (e.g., detected by inspector).
+
+        Silently ignores unknown step IDs so callers can mark steps
+        that may or may not exist in this particular DAG.
+        """
+        step = self._step_index.get(step_id)
+        if step is not None:
+            step.status = "done"
+
+    def mark_precomputed_from_state(self, state) -> int:
+        """Mark DAG steps as done based on an :class:`AnnDataState`.
+
+        Parameters
+        ----------
+        state
+            Inspector output (:class:`~scagent.inspector.AnnDataState`).
+
+        Returns
+        -------
+        Number of steps marked as precomputed.
+        """
+        # Map state flags → DAG step IDs
+        _FLAG_TO_STEPS = {
+            "has_qc_metrics": ["load", "qc_metrics", "filter_cells", "filter_genes"],
+            "has_normalized": ["normalize"],
+            "has_hvg": ["hvg"],
+            "has_pca": ["pca"],
+            "has_neighbors": ["neighbors"],
+            "has_clusters": ["clustering"],
+            "has_umap": ["umap"],
+            "has_cell_types": ["annotation"],
+            "has_de_results": ["markers"],
+        }
+        count = 0
+        for flag, step_ids in _FLAG_TO_STEPS.items():
+            if getattr(state, flag, False):
+                for sid in step_ids:
+                    step = self._step_index.get(sid)
+                    if step is not None and step.status == "pending":
+                        step.status = "done"
+                        count += 1
+        return count
+
     @property
     def done_steps(self) -> list[DAGStep]:
         return [s for s in self.steps if s.status == "done"]

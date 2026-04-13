@@ -10,10 +10,11 @@ The goal is **not** to build an agent that passes scBench by memorizing answers.
 
 > An agent that deeply understands experimental paradigms, enforces proper tool sequencing, tracks provenance, and presents biologists with verifiable intermediate results will outperform general-purpose coding agents on scRNA-seq tasks — without ever seeing the benchmark.
 
-Three pillars:
-1. **Paradigm-aware routing** — the system knows what kind of experiment this is and what analysis steps are valid
-2. **Provenance-first** — every result is traceable to inputs, parameters, and tool versions
-3. **Branched exploration** — biologists can fork, compare, and merge analysis paths
+Four pillars:
+1. **Question-driven analysis with dependency awareness** — the system responds to what the researcher asks, validates steps against a dependency graph, and optionally generates a structured plan when the researcher has a clear goal. Paradigm selection is helpful but not required.
+2. **State-aware onboarding** — the system inspects foreign data to determine what has been done, what's available, and what's needed. It never assumes it controls the data from the start.
+3. **Provenance-first** — every result is traceable to inputs, parameters, and tool versions
+4. **Branched exploration** — biologists can fork, compare, and merge analysis paths
 
 ---
 
@@ -250,7 +251,47 @@ tools/
 
 ---
 
-## 5. Analysis DAG (Directed Acyclic Graph)
+## 5. Analysis Planning (DAG + Dependency Graph)
+
+Analysis planning has two layers:
+
+### 5.1 Static Dependency Graph (always active)
+
+The dependency graph encodes what each step requires — prerequisite steps and data conditions. It is **not a plan** — it's static knowledge used to validate any step the user requests.
+
+```python
+# scagent/dependencies.py
+DEPENDENCIES = {
+    'qc_metrics':       {'requires': [],              'requires_x': ['raw_counts']},
+    'normalize':        {'requires': [],              'requires_x': ['raw_counts']},
+    'hvg':              {'requires': ['normalize'],   'requires_x': ['log_normalized']},
+    'pca':              {'requires': ['hvg']},
+    'neighbors':        {'requires': ['pca']},
+    'clustering':       {'requires': ['neighbors']},
+    'umap':             {'requires': ['neighbors']},
+    'annotation':       {'requires': ['clustering']},
+    'pseudobulk_de':    {'requires': ['annotation'],  'requires_data': ['raw_counts', 'condition_key']},
+    'trajectory':       {'requires': ['neighbors']},
+    ...
+}
+```
+
+When the researcher asks for something, the agent:
+1. Checks `check_prerequisites(goal, state)` — can this run now?
+2. If not, calls `plan_steps(goal, state)` — what's the minimal set of steps to get there?
+3. Fills the gaps, then runs the requested step.
+
+This works with or without a DAG. A researcher can ask "run trajectory" mid-atlas-analysis and the dependency graph validates it.
+
+### 5.2 Optional Analysis DAG (when the user wants a plan)
+
+When the researcher states a clear goal ("I want to build a cell atlas"), the system generates a paradigm-specific DAG. This DAG is **advisory** — it tracks progress and suggests next steps, but doesn't block out-of-plan requests.
+
+The DAG can be modified dynamically:
+- `dag.add_step(step, after="clustering")` — add trajectory to an atlas DAG
+- `dag.mark_precomputed_from_state(state)` — mark already-completed steps when onboarding foreign data
+
+### Default DAG for `disease_vs_healthy` paradigm:
 
 For each paradigm, the orchestrator generates an analysis DAG. Steps are nodes; edges are data dependencies. The researcher can modify the DAG interactively.
 
@@ -311,6 +352,86 @@ cellranger_multi → qc → normalization → hvg → pca → integration
        │         └→ rna_velocity (scvelo)
        │
        └→ marker_de → tf_analysis (scenic)
+```
+
+---
+
+## 5b. Data Inspection (`scagent/inspector.py`)
+
+When scAgent encounters data it didn't create — a researcher's pre-processed `.h5ad`, scBench eval data, or a collaborator's shared file — it needs to figure out what state the data is in before doing anything.
+
+### The Problem
+
+`adata.X` could be raw integer counts, log-normalized floats, or z-score scaled values with negatives. Attempting to normalize already-scaled data produces NaN values and crashes. The inspector runs **once** at data load and produces a comprehensive state report.
+
+### X State Detection (priority-ordered)
+
+| Check | Signal | State |
+|-------|--------|-------|
+| `(X < 0).any()` | Negative values | `scaled` |
+| `allclose(sample, round(sample))` | Integer values | `raw_counts` |
+| `'log1p' in adata.uns` | Scanpy breadcrumb | `log_normalized` |
+| `X.max() < 20` | Value range heuristic | `log_normalized` (with warning) |
+| else | Unknown transform | `transformed_unknown` |
+
+### Breadcrumb Detection
+
+Each Scanpy step leaves specific keys. The inspector checks for all of them:
+
+| Step | Breadcrumb | Reliable? |
+|------|-----------|-----------|
+| QC metrics | `obs['n_genes_by_counts']` | ✅ |
+| Normalization | `uns['log1p']` | ✅ |
+| HVG selection | `var['highly_variable']` | ✅ |
+| PCA | `obsm['X_pca']` | ✅ |
+| Neighbors | `uns['neighbors']` + `obsp['connectivities']` | ✅ |
+| UMAP | `obsm['X_umap']` | ✅ |
+| Clustering | `obs['leiden*']` / `obs['louvain*']` | ⚠️ fuzzy match |
+| Cell types | `obs['cell_type']` / `obs['annotation']` / etc. | ⚠️ fuzzy match |
+| DE results | `uns['rank_genes_groups']` | ✅ |
+
+### Raw Counts Recovery
+
+The inspector also locates raw counts for re-processing:
+1. `layers['counts']` (Scanpy convention)
+2. `layers['raw_counts']` (some pipelines)
+3. `X` itself (if state is `raw_counts`)
+
+### Usage
+
+```python
+from scagent.inspector import inspect_adata, summarize_state
+from scagent.dependencies import ensure_ready_for
+
+state = inspect_adata(adata)
+print(summarize_state(state))
+# → "6,420 cells × 19,918 genes (mouse), X: z-score scaled,
+#    raw counts in layers['raw_counts'], clusters in obs['leiden']..."
+
+# Bring X to the right state for HVG selection
+ensure_ready_for(adata, state, needs="log_normalized")
+```
+
+### Onboarding Flow
+
+```
+User: [drops a pre-processed .h5ad]
+
+scAgent: I've inspected your data:
+  6,420 cells × 19,918 genes (mouse)
+  X is z-score scaled, raw counts in layers['raw_counts']
+  Clusters: obs['leiden'] (12 clusters)
+  Cell types: obs['cell_type'] (8 types)
+  
+  What would you like to do?
+
+User: Find DE genes between the CAF subtypes
+
+scAgent: I see 'CAF' in your cell type labels. I'll:
+  1. Subset to CAF cells
+  2. Re-cluster to find subtypes (raw counts → normalize → PCA → cluster)
+  3. Run DE between subtypes
+  Proceed?
 ```
 
 ---
@@ -662,8 +783,9 @@ When hardware becomes available, the tool just gets activated in the registry. N
 | scBench Failure Mode | scAgent Design Response |
 |---------------------|--------------------------|
 | Agent doesn't know what platform the data is from | **Experiment context** explicitly encodes platform, chemistry, kit |
-| Agent uses wrong normalization for the data type | **Tool registry** encodes `valid_for_platform` and `paradigm` constraints |
-| Agent treats cells as independent replicates in cross-condition DE | **DAG rules** for `disease_vs_healthy` paradigm enforce pseudobulk |
+| Agent doesn't know data is pre-processed | **Inspector** detects X state (raw/normalized/scaled), finds raw counts in layers |
+| Agent uses wrong normalization for the data type | **Inspector + dependency graph** check X state before any transformation; `ensure_ready_for()` handles recovery |
+| Agent treats cells as independent replicates in cross-condition DE | **Dependency graph** for pseudobulk requires condition column + raw counts |
 | Agent picks arbitrary clustering resolution | **Parameter guidance** from literature baked into tool schema; resolution sweep is default |
 | Agent can't identify cell types | **Knowledge graph** loaded with marker databases; annotation validated against DE markers |
 | Agent forgets what it did 5 steps ago | **Provenance graph** always available; current state summary always in context |

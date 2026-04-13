@@ -9,8 +9,10 @@
 #   scagent -r                           # resume/pick a session
 
 SCAGENT_DIR="$(cd "$(dirname "$(readlink -f "$0" 2>/dev/null || echo "$0")")" && pwd)"
-cd "$SCAGENT_DIR"
 
+# Don't cd — run from the user's current directory so .scagent/ state
+# is created per-project.  PI_CODING_AGENT_DIR tells the agent where
+# to find its system prompt, skills, and settings.
 export PI_CODING_AGENT_DIR="$SCAGENT_DIR/.pi"
 
 # Use Feynman's bundled pi (has working auth)

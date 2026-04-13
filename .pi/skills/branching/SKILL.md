@@ -1,3 +1,8 @@
+---
+name: branching
+description: Manage parallel analysis paths — fork, switch, compare, and delete branches. Use when the user wants to try different parameters, compare methods, backtrack, or explore alternative analysis paths.
+---
+
 # Skill: Branched Analysis
 
 Manage parallel analysis paths — fork, switch, compare, delete.

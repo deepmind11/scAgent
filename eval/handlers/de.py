@@ -29,13 +29,12 @@ def handle_de(adata: ad.AnnData, task_prompt: str) -> dict:
     caf_mask = adata.obs[cell_type_col] == "CAFs"
     adata_caf = adata[caf_mask, :].copy()
 
-    # Use raw counts if available
-    if "raw_counts" in adata_caf.layers:
-        adata_caf.X = adata_caf.layers["raw_counts"].copy()
+    # Preprocess — use inspector to handle any data state
+    from scagent.inspector import inspect_adata
+    from scagent.dependencies import ensure_ready_for
 
-    # Preprocess
-    sc.pp.normalize_total(adata_caf, target_sum=1e4)
-    sc.pp.log1p(adata_caf)
+    state = inspect_adata(adata_caf)
+    ensure_ready_for(adata_caf, state, needs="log_normalized")
     adata_caf.raw = adata_caf.copy()
 
     sc.pp.highly_variable_genes(adata_caf, n_top_genes=2000, flavor="seurat")

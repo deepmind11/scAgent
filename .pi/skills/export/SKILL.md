@@ -1,3 +1,8 @@
+---
+name: export
+description: Generate paper-ready methods text and reproducibility packages from provenance. Use when the user asks to write up methods, share analysis, or create a reproducibility package or replay script.
+---
+
 # Skill: Export
 
 Generate paper-ready methods text and reproducibility packages from provenance.

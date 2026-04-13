@@ -53,6 +53,10 @@ Harmony is the default (fast, good for most cases). Other options:
 
 These are registered in the tool registry but not yet implemented as wrapper functions.
 
+## Best Practice Reference
+
+Load `best_practices/reference/integration.md` for benchmark-backed method selection (Harmony vs. scVI vs. Scanorama) based on integration complexity.
+
 ## Parameters Reference
 
 See `tools/harmony.json`.

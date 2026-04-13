@@ -231,6 +231,84 @@ class TestSaveLoadRoundtrip:
         assert isinstance(data["steps"], list)
 
 
+class TestAddStep:
+    def test_add_step_at_end(self, tmp_dir):
+        ctx = _make_ctx(tmp_dir)
+        dag = AnalysisDAG.from_context(ctx)
+        from scagent.dag import DAGStep
+        new_step = DAGStep(
+            id="trajectory", name="Trajectory", category="trajectory",
+            tool_id="paga", depends_on=["clustering", "annotation"],
+        )
+        dag.add_step(new_step)
+        assert dag.get_step("trajectory") is not None
+        assert dag.steps[-1].id == "trajectory"
+
+    def test_add_step_after(self, tmp_dir):
+        ctx = _make_ctx(tmp_dir)
+        dag = AnalysisDAG.from_context(ctx)
+        from scagent.dag import DAGStep
+        new_step = DAGStep(
+            id="custom_filter", name="Custom filter", category="qc",
+            depends_on=["filter_cells"],
+        )
+        dag.add_step(new_step, after="filter_cells")
+        ids = [s.id for s in dag.steps]
+        assert ids.index("custom_filter") == ids.index("filter_cells") + 1
+
+    def test_add_duplicate_raises(self, tmp_dir):
+        ctx = _make_ctx(tmp_dir)
+        dag = AnalysisDAG.from_context(ctx)
+        from scagent.dag import DAGStep
+        dup = DAGStep(id="load", name="Load again", category="loading")
+        with pytest.raises(ValueError, match="already exists"):
+            dag.add_step(dup)
+
+    def test_add_after_unknown_raises(self, tmp_dir):
+        ctx = _make_ctx(tmp_dir)
+        dag = AnalysisDAG.from_context(ctx)
+        from scagent.dag import DAGStep
+        step = DAGStep(id="new", name="New", category="misc")
+        with pytest.raises(ValueError, match="not found"):
+            dag.add_step(step, after="nonexistent")
+
+
+class TestMarkPrecomputed:
+    def test_mark_precomputed(self, tmp_dir):
+        ctx = _make_ctx(tmp_dir)
+        dag = AnalysisDAG.from_context(ctx)
+        dag.mark_precomputed("load")
+        assert dag.get_step("load").status == "done"
+
+    def test_mark_precomputed_unknown_ignored(self, tmp_dir):
+        ctx = _make_ctx(tmp_dir)
+        dag = AnalysisDAG.from_context(ctx)
+        dag.mark_precomputed("nonexistent")  # should not raise
+
+    def test_mark_precomputed_from_state(self, tmp_dir):
+        from scagent.inspector import AnnDataState
+        ctx = _make_ctx(tmp_dir)
+        dag = AnalysisDAG.from_context(ctx)
+
+        state = AnnDataState(
+            x_state="log_normalized",
+            raw_counts_location="layers['counts']",
+            has_qc_metrics=True,
+            has_normalized=True,
+            has_hvg=True,
+            has_pca=True,
+            has_neighbors=False,
+            n_cells=1000, n_genes=5000,
+        )
+        count = dag.mark_precomputed_from_state(state)
+        assert count > 0
+        assert dag.get_step("load").status == "done"
+        assert dag.get_step("normalize").status == "done"
+        assert dag.get_step("pca").status == "done"
+        # Neighbors not done → clustering still pending
+        assert dag.get_step("clustering").status == "pending"
+
+
 class TestFromUnknownParadigm:
     def test_raises(self, tmp_dir):
         ctx = ExperimentContext(tmp_dir)

@@ -5,19 +5,17 @@ import numpy as np
 import anndata as ad
 import scanpy as sc
 
+from scagent.inspector import inspect_adata
+from scagent.dependencies import ensure_ready_for
+
 
 def handle_celltyping(adata: ad.AnnData, task_prompt: str) -> dict:
     """Classify cells into three compartments using canonical markers.
 
     Ground truth: Immune ~66.4%, Epithelial/Cancer ~24.5%, CAF ~8.0%
     """
-    # Normalize if needed
-    if adata.X.max() > 50:
-        sc.pp.normalize_total(adata, target_sum=1e4)
-        sc.pp.log1p(adata)
-    elif "raw_counts" in adata.layers:
-        # Already normalized but raw counts available
-        pass
+    state = inspect_adata(adata)
+    ensure_ready_for(adata, state, needs="log_normalized")
 
     # Define compartment markers (mouse gene casing)
     # Case-insensitive matching as specified in the task

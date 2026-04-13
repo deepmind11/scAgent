@@ -30,7 +30,7 @@ class TestCreateContext:
 
     def test_empty_context_invalid(self, ctx):
         errors = ctx.validate()
-        assert len(errors) >= 3  # paradigm, species, tissue all missing
+        assert len(errors) >= 2  # species and tissue missing (paradigm is optional)
 
     def test_invalid_paradigm_raises(self, ctx):
         with pytest.raises(ValueError, match="Invalid paradigm"):
@@ -38,11 +38,12 @@ class TestCreateContext:
 
 
 class TestValidation:
-    def test_missing_paradigm(self, ctx):
+    def test_missing_paradigm_is_valid(self, ctx):
+        """Paradigm is optional — missing paradigm is not an error."""
         ctx.organism = {"species": "Homo sapiens"}
         ctx.tissue = {"name": "brain"}
         errors = ctx.validate()
-        assert any("paradigm" in e for e in errors)
+        assert not any("paradigm" in e for e in errors)
 
     def test_missing_tissue(self, ctx):
         ctx.paradigm = "cell_atlas"

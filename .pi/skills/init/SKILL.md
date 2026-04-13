@@ -1,3 +1,8 @@
+---
+name: init
+description: Set up the experiment context for a new scAgent project. Use when no project.json exists, the user says init or new project, or the user jumps straight to analysis without context.
+---
+
 # Skill: Project Initialization
 
 Set up the experiment context for a new scAgent project. This is the first thing that happens — before any analysis.
@@ -82,8 +87,49 @@ Based on Füllgrabe et al. 2020 — analysis-critical fields:
 | Batch structure | Ask if multi-sample |
 | Cell enrichment / sorting | Ask only if relevant (e.g., immune panel) |
 
+## Mode B: Onboarding Pre-Processed Data
+
+When the user provides a `.h5ad` file that has already been (partially) processed:
+
+### Step 1: Inspect the data
+
+```python
+from scagent.inspector import inspect_adata, summarize_state
+
+state = inspect_adata(adata)
+print(summarize_state(state))
+```
+
+### Step 2: Show what was detected
+
+Tell the user what you found:
+> "I've inspected your data: 6,420 cells × 19,918 genes (mouse). X is z-score scaled, raw counts are available in `layers['raw_counts']`. I see Leiden clusters and cell type annotations. What would you like to do?"
+
+### Step 3: Respond to the question
+
+Use the dependency system to figure out what's needed:
+
+```python
+from scagent.dependencies import plan_steps, check_prerequisites
+
+# User asks for DE → check what's needed
+can_run, missing = check_prerequisites("pseudobulk_de", state)
+steps = plan_steps("pseudobulk_de", state)
+```
+
+### Step 4: Optionally generate a DAG
+
+If the user wants a structured plan, generate one and mark pre-computed steps:
+
+```python
+dag = AnalysisDAG.from_context(ctx)
+dag.mark_precomputed_from_state(state)
+```
+
 ## Rules
 
-- **Never silently default to cell_atlas.** If paradigm is unknown, ask.
+- **Never silently default to cell_atlas.** If paradigm is unknown, ask — or let the user's question drive the analysis.
+- **Paradigm is optional.** The user can work question-by-question without declaring a paradigm. The dependency graph validates steps regardless.
 - **Don't re-ask every session.** Once `project.json` is saved, load it. Only ask again if critical fields are missing.
 - **Accept partial info.** If the researcher gives a rich prompt, extract what you can and confirm. Don't re-ask what they already told you.
+- **Inspect before assuming.** When receiving a foreign `.h5ad`, always run `inspect_adata()` before any preprocessing. Never assume X contains raw counts.

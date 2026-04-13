@@ -1,11 +1,14 @@
 ---
 name: doublet-detection
-description: Detect and optionally remove cell doublets using Scrublet. Use after QC filtering and before normalization. Must run on raw (unnormalized) counts.
+description: Detect and optionally remove cell doublets using Scanpy's built-in scrublet wrapper (sc.pp.scrublet). Use after QC filtering and before normalization. Must run on raw (unnormalized) counts.
 ---
 
 # Doublet Detection
 
-Identify cell doublets (two cells captured in one droplet) using Scrublet via Scanpy's built-in wrapper.
+Identify cell doublets (two cells captured in one droplet) using `sc.pp.scrublet()` — Scanpy's built-in reimplementation of the Scrublet algorithm.
+
+> **⚠️ WARNING: Do NOT `import scrublet` directly.**
+> The `scrublet` PyPI package contains native C extensions that cause **Bus Error (SIGBUS) crashes on Python 3.13** due to incompatible compiled code. Always use `sc.pp.scrublet()` from Scanpy instead — it is a pure-Python reimplementation of the same algorithm with an identical interface and does not depend on the broken native library.
 
 ## When to Use
 
@@ -20,27 +23,60 @@ Identify cell doublets (two cells captured in one droplet) using Scrublet via Sc
 
 ## How to Run
 
-```python
-from scagent.tools.doublets import detect_doublets
+### Single-sample experiment
 
-adata, result = detect_doublets(
-    adata,
-    random_state=0,
-    plot_dir="data/working/plots",
-    checkpoint_dir="data/working/checkpoints",
-)
+```python
+import scanpy as sc
+
+# Calculate expected doublet rate from cell count
+# 10x Chromium rate: ~0.8% per 1,000 cells captured
+n_cells = adata.n_obs
+expected_doublet_rate = 0.008 * (n_cells / 1000)
+
+sc.pp.scrublet(adata, expected_doublet_rate=expected_doublet_rate, random_state=0)
 ```
 
-The function auto-calculates the expected doublet rate from the cell count:
-- 10x Chromium rate: ~0.8% per 1,000 cells captured
-- Example: 10,000 cells → ~8% expected doublets
+This adds two columns to `adata.obs` in-place:
+- `predicted_doublet` — `bool`, True for predicted doublets
+- `doublet_score` — `float`, continuous doublet score (0–1)
+
+### Multi-sample experiment (required)
+
+For datasets with multiple samples, **run scrublet per sample** then concatenate. Running on the merged dataset confuses the algorithm because inter-sample variation looks like doublets.
+
+```python
+import scanpy as sc
+
+sample_adatas = []
+for sample_id in adata.obs["sample"].unique():
+    adata_sub = adata[adata.obs["sample"] == sample_id].copy()
+    n_cells = adata_sub.n_obs
+    expected_doublet_rate = 0.008 * (n_cells / 1000)
+    sc.pp.scrublet(adata_sub, expected_doublet_rate=expected_doublet_rate, random_state=0)
+    sample_adatas.append(adata_sub)
+
+adata = sc.concat(sample_adatas)
+```
+
+### Removing doublets
+
+After running `sc.pp.scrublet`, filter doublets explicitly:
+
+```python
+n_before = adata.n_obs
+adata = adata[~adata.obs["predicted_doublet"]].copy()
+n_removed = n_before - adata.n_obs
+```
+
+To annotate only (without removing), simply skip the filtering step.
 
 ## What to Show the User
 
-1. **Doublet score histogram** — saved to `plot_dir/doublet_histogram.png`. Show it.
-2. **Key numbers** from `result["metrics"]`:
-   - Number of doublets detected and rate
-   - Expected rate (for comparison)
+1. **Doublet score histogram** — plot with `sc.pl.scrublet_score_distribution(adata)` or build a custom histogram from `adata.obs['doublet_score']`. Save to `data/working/plots/doublet_histogram.png` and show it.
+2. **Key numbers** — compute directly from `adata.obs`:
+   - `n_doublets = adata.obs['predicted_doublet'].sum()`
+   - `doublet_rate = n_doublets / adata.n_obs`
+   - Expected rate (calculated from cell count as above)
    - Whether doublets were removed or just annotated
 
 Example: "Detected 545 doublets (5.0% of cells). Expected rate for 10,991 cells: ~8.8%. Removed doublets, leaving 10,446 cells."
@@ -50,11 +86,6 @@ Example: "Detected 545 doublets (5.0% of cells). Expected rate for 10,991 cells:
 - **Rate close to expected:** Normal. Proceed.
 - **Rate much higher than expected (>2×):** Scrublet may be over-calling. Inspect the histogram — is there a clear bimodal separation? If not, the threshold may need manual adjustment.
 - **Rate much lower than expected (<1/3):** Scrublet may have failed. The score distribution may be unimodal (no clear doublet peak). Consider adjusting `n_prin_comps`.
-
-## Options
-
-- `remove=True` (default): Remove predicted doublets from the dataset.
-- `remove=False`: Only annotate — adds `doublet_score` and `predicted_doublet` to `adata.obs` without removing any cells. Useful when the user wants to inspect doublets before deciding.
 
 ## Reproducibility
 
@@ -68,7 +99,12 @@ Suggest normalization: "Doublet detection is complete. Next I'll normalize the d
 
 See `tools/scrublet_doublets.json` for the full parameter schema.
 
+## Best Practice Reference
+
+Load `best_practices/reference/doublet-detection.md` for benchmark-backed method recommendations and interpretation guidance.
+
 ## Notes
 
-- For multi-sample experiments, ideally run Scrublet per sample before merging. The current function runs on the full dataset.
-- Scrublet performs its own internal normalization and PCA — this is separate from the analysis pipeline's normalization step.
+- **Never `import scrublet`** — see warning at top. Use `sc.pp.scrublet()` exclusively.
+- For multi-sample experiments, always run scrublet per sample before merging (see multi-sample code above).
+- `sc.pp.scrublet` performs its own internal normalization and PCA — this is separate from the analysis pipeline's normalization step.

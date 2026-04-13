@@ -1,3 +1,8 @@
+---
+name: memory
+description: Cross-session memory for scAgent using MemPalace. Store and recall analysis decisions, tool results, and discussions across sessions via natural language search.
+---
+
 # Skill: Memory (MemPalace)
 
 Cross-session memory for scAgent.  Every analysis decision, tool result, and

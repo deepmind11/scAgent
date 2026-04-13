@@ -67,6 +67,10 @@ Suggest cell type annotation: "Based on these markers, I can suggest cell type i
 
 This finds **cluster markers** — genes distinguishing one cluster from all others. For **cross-condition differential expression** (disease vs healthy), use pseudobulk methods (DESeq2/edgeR) in a later step. Do not confuse the two.
 
+## Best Practice Reference
+
+Load `best_practices/reference/marker-genes.md` for guidance on p-value inflation in cluster markers, specificity filtering, and the distinction from cross-condition DE.
+
 ## Parameters Reference
 
 See `tools/wilcoxon_markers.json`.

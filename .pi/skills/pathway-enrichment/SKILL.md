@@ -1,3 +1,8 @@
+---
+name: pathway-enrichment
+description: Run gene set enrichment analysis (GSEA) on DE results to find enriched biological pathways. Use after pseudobulk DE or when the user asks about pathways, GO terms, biological processes, or functional enrichment.
+---
+
 # Skill: Pathway Enrichment (GSEA)
 
 Run gene set enrichment analysis on DE results to find enriched biological pathways.
@@ -41,6 +46,10 @@ Recommend based on the biological question:
 
 **After running:**
 > "3 enriched pathways in CD14 Monocytes: TNF-alpha signaling (NES=2.1), Inflammatory response (NES=1.8), Interferon gamma response (NES=1.6). GSEA uses a permissive FDR<0.25 threshold by design."
+
+## Best Practice Reference
+
+Load `best_practices/reference/pathway-enrichment.md` for guidance on gene set database selection (the choice of database matters more than the statistical method) and the decoupleR framework.
 
 ## Notes
 
