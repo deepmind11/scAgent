@@ -1,0 +1,46 @@
+{
+  "name": "query_markers",
+  "description": "Query marker genes for a cell type from curated databases (canonical, CellTypist models, CellMarker 2.0, PanglaoDB). Returns a ranked list of markers with source attribution.",
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "cell_type": {
+        "type": "string",
+        "description": "Cell type name, e.g. 'NK cells', 'CD8+ T cells', 'Classical monocytes'. Aliases are resolved automatically."
+      },
+      "species": {
+        "type": "string",
+        "enum": ["human", "mouse"],
+        "default": "human",
+        "description": "Species to query markers for."
+      },
+      "tissue": {
+        "type": "string",
+        "default": "",
+        "description": "Optional tissue filter, e.g. 'PBMC', 'lung', 'brain'."
+      },
+      "top_n": {
+        "type": "integer",
+        "default": 15,
+        "minimum": 1,
+        "maximum": 50,
+        "description": "Maximum number of markers to return per source."
+      },
+      "sources": {
+        "type": "array",
+        "items": {
+          "type": "string",
+          "enum": ["canonical", "celltypist", "cellmarker2", "panglaodb"]
+        },
+        "description": "Restrict to specific sources. Default: all available."
+      }
+    },
+    "required": ["cell_type"]
+  },
+  "returns": {
+    "type": "object",
+    "description": "Object with cell_type, markers (list of {gene, source, rank}), sources, by_source, n_total."
+  },
+  "category": "knowledge",
+  "callable": "scagent.tools.knowledge_tools.query_markers"
+}

@@ -7,10 +7,12 @@ from scagent.state import StateManager
 from scagent.context import ExperimentContext
 from scagent.dag import AnalysisDAG
 from scagent.memory import ProjectMemory
+from scagent.knowledge import MarkerDB
 
 __all__ = [
     "ProvenanceGraph", "record_step", "record_custom",
     "StateManager",
     "ExperimentContext", "AnalysisDAG",
     "ProjectMemory",
+    "MarkerDB",
 ]
