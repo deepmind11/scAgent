@@ -28,7 +28,7 @@ pip install -e ".[eval]"
 python eval/run_benchmark.py
 ```
 
-This runs scAgent's direct adapter against all 7 tasks and prints a pass/fail summary. Results are saved to `eval/results/`.
+This calls scAgent's analysis tools directly (no LLM in the loop) against all 7 tasks and prints a pass/fail summary. It validates that the underlying tool implementations produce correct results. Results are saved to `eval/results/`.
 
 The evaluations use [SC-Bench](https://github.com/latchbio/scbench) by [LatchBio](https://latch.bio) ([eval-graders](https://github.com/latchbio/eval-graders)). The canonical eval JSONs are included under Apache 2.0.
 
