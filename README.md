@@ -21,14 +21,22 @@ scAgent passes **6 out of 7** canonical tasks (85.7%) on [SC-Bench](https://gith
 <details>
 <summary>Reproduce the evaluation</summary>
 
-The 7 canonical Chromium evaluations are bundled in [`eval/evals_canonical_chromium/`](eval/evals_canonical_chromium/). To run them:
+The 7 canonical Chromium evaluations from SC-Bench are bundled in [`eval/evals_canonical_chromium/`](eval/evals_canonical_chromium/).
 
+**Tool-level benchmark** (no LLM, tests analysis logic directly):
 ```bash
 pip install -e ".[eval]"
 python eval/run_benchmark.py
 ```
 
-This calls scAgent's analysis tools directly (no LLM in the loop) against all 7 tasks and prints a pass/fail summary. It validates that the underlying tool implementations produce correct results. Results are saved to `eval/results/`.
+**Full agent benchmark** (LLM interprets task → chooses tools → produces answer):
+```bash
+pip install -e ".[eval]"
+python eval/run_llm_benchmark.py                        # default: claude-opus-4-6
+python eval/run_llm_benchmark.py --model claude-sonnet-4-5  # or any model
+```
+
+Both produce pass/fail summaries and save results to `eval/results/`.
 
 The evaluations use [SC-Bench](https://github.com/latchbio/scbench) by [LatchBio](https://latch.bio) ([eval-graders](https://github.com/latchbio/eval-graders)). The canonical eval JSONs are included under Apache 2.0.
 
