@@ -126,7 +126,7 @@ You can run an analysis, then go back to any checkpoint and branch off in a diff
 
 ### Long-Term Memory
 
-Cross-session memory via [MemPalace](https://github.com/AidanCooper/mempalace) (ChromaDB-backed). Every analysis decision, parameter choice, and conversation is stored with metadata (branch, timestamp, analysis phase). When the agent needs to recall a past decision — "why did we choose resolution 0.8?" — it does a semantic search and retrieves the relevant context, even across sessions.
+Real-world scRNA-seq analysis happens over weeks — you run QC on Monday, come back to clustering on Thursday, and a reviewer asks about your normalization choice a month later. scAgent maintains cross-session memory via [MemPalace](https://github.com/AidanCooper/mempalace) (ChromaDB-backed) so nothing is lost between sessions. Every analysis decision, parameter choice, and conversation is stored with metadata (branch, timestamp, analysis phase). When the agent needs to recall a past decision — "why did we choose resolution 0.8?" — it does a semantic search and retrieves the relevant context, even from weeks ago.
 
 ### Provenance & Reproducibility
 
@@ -134,7 +134,9 @@ Every tool invocation is recorded as a W3C PROV-O graph in JSON-LD — inputs, p
 
 The export module ([`scagent/export.py`](scagent/export.py)) generates from the provenance chain:
 - **Methods section** — camera-ready prose for a paper, auto-generated from provenance records
-- **Reproducibility package** — `methods.md`, `params.json`, `README.md`, and `replay.py` (a script that re-runs the entire analysis from raw data using the recorded parameters)
+- **Reproducibility package** — a self-contained directory with `methods.md`, `params.json`, `README.md`, and `replay.py` (a script that re-runs the entire analysis from raw data using the recorded parameters)
+
+Share the reproducibility package with a collaborator or reviewer and they can reproduce your exact analysis independently — same parameters, same tool versions, same results.
 
 ### Biologist-Friendly
 
