@@ -118,7 +118,7 @@ The dependency module ([`scagent/dependencies.py`](scagent/dependencies.py)) enc
 
 ### Paradigm-Aware Analysis DAG
 
-Every experiment has a paradigm (cell atlas, disease vs. healthy, developmental trajectory, perturbation). The analysis DAG in [`scagent/dag.py`](scagent/dag.py) adapts valid step ordering based on the paradigm — preventing invalid operations like running pseudobulk DE on a single-condition atlas, or clustering on UMAP coordinates.
+Every experiment can have a paradigm (cell atlas, disease vs. healthy, developmental trajectory, perturbation). The analysis DAG in [`scagent/dag.py`](scagent/dag.py) adapts valid step ordering based on the paradigm — preventing invalid operations like running pseudobulk DE on a single-condition atlas, or clustering on UMAP coordinates.
 
 ### State Management & Branching
 
