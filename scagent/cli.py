@@ -75,6 +75,44 @@ def install_pi_coding_agent() -> bool:
         return False
 
 
+def ensure_auth():
+    """Ensure pi-coding-agent has auth credentials.
+
+    If ~/.pi/agent/auth.json is empty/missing but Feynman has working
+    OAuth tokens at ~/.feynman/agent/auth.json, symlink them so scAgent
+    works immediately without a separate /login step.
+    """
+    home = Path.home()
+    pi_auth_dir = home / ".pi" / "agent"
+    pi_auth = pi_auth_dir / "auth.json"
+    feynman_auth = home / ".feynman" / "agent" / "auth.json"
+
+    # Already has credentials?
+    if pi_auth.exists() and not pi_auth.is_symlink():
+        try:
+            import json
+            data = json.loads(pi_auth.read_text())
+            if data:  # non-empty dict
+                return
+        except Exception:
+            pass
+
+    # Feynman has working auth? Symlink it.
+    if feynman_auth.exists():
+        try:
+            import json
+            data = json.loads(feynman_auth.read_text())
+            if data:
+                pi_auth_dir.mkdir(parents=True, exist_ok=True)
+                if pi_auth.exists() or pi_auth.is_symlink():
+                    pi_auth.unlink()
+                pi_auth.symlink_to(feynman_auth)
+                print(f"Linked auth from Feynman ({feynman_auth})", file=sys.stderr)
+                return
+        except Exception:
+            pass
+
+
 def find_pi_cli() -> list[str]:
     """Find the pi CLI, installing it if necessary. Returns the command."""
     # 1. pi in PATH
@@ -108,6 +146,7 @@ def find_pi_cli() -> list[str]:
 def main():
     """Entry point for the scagent command."""
     root = find_scagent_root()
+    ensure_auth()
     cmd = find_pi_cli()
 
     # Pass through all CLI args to pi
