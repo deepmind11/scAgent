@@ -26,7 +26,7 @@ scAgent is an AI assistant that helps wet-lab biologists perform, understand, an
 
 ```bash
 # Clone the repo
-git clone https://github.com/YOUR_USERNAME/scAgent.git
+git clone https://github.com/deepmind11/scAgent.git
 cd scAgent
 
 # Create a virtual environment and install
