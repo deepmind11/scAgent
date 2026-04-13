@@ -106,7 +106,7 @@ The evaluations use [SC-Bench](https://github.com/latchbio/scbench) by [LatchBio
 
 Full pipeline from raw counts to publication: QC → normalization → HVG → PCA → batch integration (Harmony, scVI, BBKNN, Scanorama) → clustering (Leiden/Louvain) → cell type annotation (CellTypist) → differential expression (pseudobulk DESeq2/edgeR, Wilcoxon) → pathway enrichment (GSEA, ClusterProfiler) → cell communication (CellChat, CellPhoneDB). Trajectory analysis tools (Monocle3, Slingshot, scVelo, PAGA) have JSON schemas defined but are not yet implemented.
 
-Each tool is defined by a JSON schema in [`tools/`](tools/) with parameter types, constraints, and literature-backed defaults.
+Each tool is defined by a JSON schema in [`tools/`](tools/) with parameter types, constraints, and literature-backed defaults. Default parameters and analysis guidelines are derived from [Best Practices for Single Cell Analysis across Modalities](https://www.nature.com/articles/s41576-023-00586-w) (Heumos et al., 2023) and the [10x Genomics Analysis Guide](https://www.10xgenomics.com/analysis-guides/best-practices-analysis-10x-single-cell-rnaseq-data). Per-step reference summaries are in [`best_practices/reference/`](best_practices/reference/).
 
 ### Paradigm-Aware Analysis DAG
 
