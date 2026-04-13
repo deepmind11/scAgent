@@ -16,11 +16,8 @@ scAgent is an AI assistant that helps wet-lab biologists perform, understand, an
 ## Prerequisites
 
 - **Python ≥ 3.11**
-- **Feynman CLI** — the AI agent runtime that powers scAgent
-  ```bash
-  curl -fsSL https://feynman.sh/install | bash
-  ```
-- An **Anthropic API key** (Claude) configured in Feynman
+- **Node.js ≥ 20.19** — needed for the agent runtime ([install](https://nodejs.org))
+- An **Anthropic API key** — set `ANTHROPIC_API_KEY` in your environment
 
 ## Installation
 
@@ -29,11 +26,16 @@ scAgent is an AI assistant that helps wet-lab biologists perform, understand, an
 git clone https://github.com/deepmind11/scAgent.git
 cd scAgent
 
-# Create a virtual environment and install
+# Create a virtual environment and install Python dependencies
 python -m venv .venv
 source .venv/bin/activate
 pip install -e .
+
+# Install the agent runtime (one-time)
+npm install -g @mariozechner/pi-coding-agent
 ```
+
+> **No npm?** The launcher script can also run via `npx` (comes with Node.js), so a global install is optional.
 
 ## Quick start
 
@@ -43,6 +45,9 @@ pip install -e .
 
 # Or with specific model settings
 ./scagent.sh --model opus --thinking max
+
+# You can also run pi directly from the project directory
+cd scAgent && pi
 ```
 
 On first launch, scAgent will ask you about your experiment:
@@ -89,7 +94,7 @@ scAgent/
 
 ## How it works
 
-scAgent is built on the [Feynman](https://github.com/mariozechner/feynman) agent framework. The `.pi/` directory contains:
+scAgent is built on [pi-coding-agent](https://www.npmjs.com/package/@mariozechner/pi-coding-agent), an open-source AI coding agent CLI. The `.pi/` directory contains:
 
 - **System prompt** (`SYSTEM.md`) — defines scAgent's identity, rules, and constraints
 - **Skills** — 19 step-specific instruction sets (QC, clustering, annotation, etc.) that the agent loads contextually
