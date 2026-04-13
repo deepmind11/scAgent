@@ -16,8 +16,11 @@ scAgent is an AI assistant that helps wet-lab biologists perform, understand, an
 ## Prerequisites
 
 - **Python ≥ 3.11**
-- **Node.js ≥ 20.19** — [install](https://nodejs.org) (the agent runtime needs it)
-- A **Claude subscription** (Pro/Max) — no API key needed, authenticate via OAuth
+- **[Feynman](https://github.com/getcompanion-ai/feynman)** — the AI agent runtime
+  ```bash
+  curl -fsSL https://feynman.is/install | bash
+  feynman setup   # authenticate with your Claude subscription
+  ```
 
 ## Installation
 
@@ -29,22 +32,12 @@ source .venv/bin/activate
 pip install -e .
 ```
 
-On first run, `scagent` will install the agent runtime ([pi-coding-agent](https://www.npmjs.com/package/@mariozechner/pi-coding-agent)) automatically if Node.js is available. Subsequent launches are instant.
-
 ## Quick start
 
 ```bash
 # Launch scAgent (works from anywhere)
 scagent
 ```
-
-On first launch, authenticate with your Claude subscription:
-```
-> /login
-# Opens your browser → sign in with your Claude account → done
-```
-
-This is a one-time step. Your credentials are stored locally in `~/.pi/agent/auth.json` and auto-refresh.
 
 ```bash
 # With specific model/thinking settings
@@ -101,7 +94,7 @@ scAgent/
 
 ## How it works
 
-scAgent is built on [pi-coding-agent](https://www.npmjs.com/package/@mariozechner/pi-coding-agent), an open-source AI coding agent CLI. The `.pi/` directory contains:
+scAgent is built on [Feynman](https://github.com/getcompanion-ai/feynman), an open-source AI research agent. The `.pi/` directory contains:
 
 - **System prompt** (`SYSTEM.md`) — defines scAgent's identity, rules, and constraints
 - **Skills** — 19 step-specific instruction sets (QC, clustering, annotation, etc.) that the agent loads contextually
