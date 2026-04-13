@@ -20,7 +20,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 from scbench import EvalRunner
 from eval.adapter import scagent_direct_agent
 
-EVAL_DIR = Path(__file__).parent.parent.parent / "scbench-eval" / "evals_canonical" / "chromium"
+EVAL_DIR = Path(__file__).parent / "evals_canonical_chromium"
 
 
 def main():

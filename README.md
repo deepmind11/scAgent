@@ -21,17 +21,16 @@ scAgent passes **6 out of 7** canonical tasks (85.7%) on [SC-Bench](https://gith
 <details>
 <summary>Reproduce the evaluation</summary>
 
-```bash
-# Install scBench (LatchBio's evaluation framework)
-pip install git+https://github.com/latchbio/scbench.git
+The 7 canonical Chromium evaluations are bundled in [`eval/evals_canonical_chromium/`](eval/evals_canonical_chromium/). To run them:
 
-# Run the canonical evaluations against scAgent
-# See eval/ directory for our adapter and results
-cd eval
-python run_benchmark.py
+```bash
+pip install -e ".[eval]"
+python eval/run_benchmark.py
 ```
 
-Raw results are in [`eval/results/`](eval/results/). SC-Bench citation:
+This runs scAgent's direct adapter against all 7 tasks and prints a pass/fail summary. Results are saved to `eval/results/`.
+
+The evaluations use [SC-Bench](https://github.com/latchbio/scbench) by [LatchBio](https://latch.bio) ([eval-graders](https://github.com/latchbio/eval-graders)). The canonical eval JSONs are included under Apache 2.0.
 
 ```bibtex
 @article{scbench2026,
