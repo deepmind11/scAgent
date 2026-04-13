@@ -203,18 +203,26 @@ Skills to create:
 ### Chunk 6: Experiment Context & DAG
 **Goal:** `scagent init` flow + paradigm-aware DAG generation.
 
-- [ ] `scagent-project.json` schema (minSCe-based, from architecture §3)
-- [ ] Skill: `.pi/skills/init/SKILL.md` — interactive project initialization
-  - Ask: species, tissue, platform, chemistry, paradigm, samples
-  - Generate `scagent-project.json`
-  - Generate initial DAG based on paradigm
-- [ ] DAG definitions for 3 paradigms:
-  - `dags/cell_atlas.json`
-  - `dags/disease_vs_healthy.json`
-  - `dags/developmental_trajectory.json`
-- [ ] DAG executor logic: track current position, suggest next step, validate ordering
+- [x] `scagent/context.py` — ExperimentContext class (~300 LOC)
+  - minSCe-based schema: paradigm, organism, tissue, platform, library, samples, design
+  - `infer_from_data(adata)` — auto-detect species, platform, UMI, cell count
+  - `validate()` — paradigm-specific rules (disease_vs_healthy requires conditions)
+  - Decision helpers: `needs_batch_correction()`, `needs_pseudobulk_de()`, `needs_trajectory()`
+  - `inferred` flags on auto-detected fields
+- [x] `scagent/dag.py` — AnalysisDAG class (~280 LOC)
+  - 3 paradigm DAGs: cell_atlas (13 steps), disease_vs_healthy (16 + pseudobulk DE), developmental_trajectory (16 + trajectory)
+  - Conditional steps: batch_correction only when multi-sample
+  - `next_step()`, `complete_step()`, `skip_step()`, `is_valid_step()`
+  - `summary()` → markdown table with ✅/⬜/⏭️
+- [x] `.pi/skills/init/SKILL.md` — conversational init: infer first, ask what you must
+- [x] `.pi/skills/dag/SKILL.md` — DAG-following behavior for the agent
+- [x] `tests/test_context.py` — 20 tests
+- [x] `tests/test_dag.py` — 24 tests
+- [x] `tests/test_init_integration.py` — real PBMC init flow
 
 **Deliverable:** `scagent init` creates a project with experiment context and a paradigm-appropriate analysis plan.
+
+**Status: ✅ DONE** — 115 unit tests + 1 integration test pass. PBMC 10k → inferred human + UMI → cell_atlas DAG (13 steps).
 
 ---
 
