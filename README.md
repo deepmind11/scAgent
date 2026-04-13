@@ -4,6 +4,55 @@ An agentic single-cell RNA-seq analysis system for 10x Genomics Chromium data.
 
 scAgent is an AI assistant that helps wet-lab biologists perform, understand, and interpret scRNA-seq experiments through natural language conversation. It enforces best practices, tracks full provenance, and produces reproducible analyses — no programming knowledge required.
 
+## Prerequisites
+
+- **Python ≥ 3.11**
+- **[Feynman](https://github.com/getcompanion-ai/feynman)** — the AI agent runtime
+  ```bash
+  curl -fsSL https://feynman.is/install | bash
+  feynman setup   # authenticate with your Claude subscription
+  ```
+
+## Installation
+
+```bash
+git clone https://github.com/deepmind11/scAgent.git
+cd scAgent
+python -m venv .venv
+source .venv/bin/activate
+pip install -e .
+```
+
+## Quick Start
+
+```bash
+# Launch scAgent (works from anywhere)
+scagent
+
+# With specific model/thinking settings
+scagent --model opus --thinking max
+
+# Continue a previous session
+scagent -c
+
+# Resume/pick a session
+scagent -r
+```
+
+On first launch, scAgent will ask you about your experiment:
+1. **Load your data** — point it at a `filtered_feature_bc_matrix.h5` from Cell Ranger
+2. **Describe your experiment** — tissue, organism, experimental design
+3. **Start analyzing** — ask questions in natural language
+
+Example prompts:
+```
+> Load data/pbmc10k/filtered_feature_bc_matrix.h5 and run QC
+> What cell types are in my data?
+> Compare gene expression between clusters 0 and 3
+> Run pseudobulk DE between treatment and control
+> Generate a methods section for my paper
+```
+
 ## Evaluation: SC-Bench
 
 scAgent passes **6 out of 7** canonical tasks (85.7%) on [SC-Bench](https://github.com/latchbio/scbench) (Workman et al., 2026, [LatchBio](https://latch.bio)), a benchmark of 394 verifiable problems derived from practical scRNA-seq workflows. The current top baseline model on SC-Bench scores 52.8%.
@@ -82,55 +131,6 @@ The export module ([`scagent/export.py`](scagent/export.py)) generates from the 
 ### Biologist-Friendly
 
 scAgent explains what it's doing and why at every step. It presents QC distributions and plots, shows parameter choices with rationale, displays top marker genes per cluster with supporting evidence, and asks for confirmation before advancing. No programming knowledge is assumed.
-
-## Prerequisites
-
-- **Python ≥ 3.11**
-- **[Feynman](https://github.com/getcompanion-ai/feynman)** — the AI agent runtime
-  ```bash
-  curl -fsSL https://feynman.is/install | bash
-  feynman setup   # authenticate with your Claude subscription
-  ```
-
-## Installation
-
-```bash
-git clone https://github.com/deepmind11/scAgent.git
-cd scAgent
-python -m venv .venv
-source .venv/bin/activate
-pip install -e .
-```
-
-## Quick Start
-
-```bash
-# Launch scAgent (works from anywhere)
-scagent
-
-# With specific model/thinking settings
-scagent --model opus --thinking max
-
-# Continue a previous session
-scagent -c
-
-# Resume/pick a session
-scagent -r
-```
-
-On first launch, scAgent will ask you about your experiment:
-1. **Load your data** — point it at a `filtered_feature_bc_matrix.h5` from Cell Ranger
-2. **Describe your experiment** — tissue, organism, experimental design
-3. **Start analyzing** — ask questions in natural language
-
-Example prompts:
-```
-> Load data/pbmc10k/filtered_feature_bc_matrix.h5 and run QC
-> What cell types are in my data?
-> Compare gene expression between clusters 0 and 3
-> Run pseudobulk DE between treatment and control
-> Generate a methods section for my paper
-```
 
 ## Project Structure
 
