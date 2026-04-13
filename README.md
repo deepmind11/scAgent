@@ -108,6 +108,14 @@ Full pipeline from raw counts to publication: QC → normalization → HVG → P
 
 Each tool is defined by a JSON schema in [`tools/`](tools/) with parameter types, constraints, and literature-backed defaults. Default parameters and analysis guidelines are derived from [Best Practices for Single Cell Analysis across Modalities](https://www.nature.com/articles/s41576-023-00586-w) (Heumos et al., 2023) and the [10x Genomics Analysis Guide](https://www.10xgenomics.com/analysis-guides/best-practices-analysis-10x-single-cell-rnaseq-data). Per-step reference summaries are in [`best_practices/reference/`](best_practices/reference/).
 
+### State-Aware Data Inspector
+
+When you load data — whether raw from Cell Ranger or a half-processed `.h5ad` from a collaborator — the inspector ([`scagent/inspector.py`](scagent/inspector.py)) automatically determines what has already been done: is `adata.X` raw counts, log-normalized, or scaled? Are there PCA embeddings? Clustering labels? Batch columns? The agent uses this to reason about what steps are needed rather than assuming it controls the data from the start.
+
+### Dependency Resolution
+
+The dependency module ([`scagent/dependencies.py`](scagent/dependencies.py)) encodes what each analysis step requires — both prerequisite steps and data conditions. If you ask for differential expression but haven't clustered yet, scAgent can check what's missing (`check_prerequisites`), plan the minimal steps to get there (`plan_steps`), or auto-run the prerequisites (`ensure_ready_for`).
+
 ### Paradigm-Aware Analysis DAG
 
 Every experiment has a paradigm (cell atlas, disease vs. healthy, developmental trajectory, perturbation). The analysis DAG in [`scagent/dag.py`](scagent/dag.py) adapts valid step ordering based on the paradigm — preventing invalid operations like running pseudobulk DE on a single-condition atlas, or clustering on UMAP coordinates.
