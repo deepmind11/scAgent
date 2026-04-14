@@ -114,18 +114,26 @@ def _developmental_trajectory_steps(ctx: ExperimentContext) -> list[DAGStep]:
     steps = _cell_atlas_steps(ctx)  # shared prefix
 
     # Add trajectory-specific steps
+    # Best-practice workflow: PAGA → Palantir → (optional) scVelo → CellRank
+    # [BP-2] Ch. 14: Palantir preferred over DPT for pseudotime
+    # [BP-2] Ch. 15: CellRank preferred over raw velocity stream plots
     steps.extend([
         DAGStep(
             "paga", "PAGA trajectory topology", "trajectory",
             "paga", ["clustering"],
         ),
         DAGStep(
-            "pseudotime", "Diffusion pseudotime", "trajectory",
-            "diffusion_pseudotime", ["paga", "annotation"],
+            "pseudotime", "Palantir pseudotime", "trajectory",
+            "palantir", ["paga", "annotation"],
         ),
         DAGStep(
             "rna_velocity", "RNA velocity", "trajectory",
             "scvelo_velocity", ["neighbors"],
+            required=False, conditional=True,
+        ),
+        DAGStep(
+            "fate_mapping", "CellRank fate mapping", "trajectory",
+            "cellrank", ["rna_velocity"],
             required=False, conditional=True,
         ),
     ])

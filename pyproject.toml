@@ -43,6 +43,8 @@ dependencies = [
     "gseapy>=1.0",
     # Chunk 11: paradigm-specific dependencies
     "scvelo>=0.3.2",          # RNA velocity (trajectory)
+    "palantir>=1.4",          # Pseudotime + terminal states (recommended over DPT)
+    "cellrank>=2.0",          # Fate mapping from velocity (recommended over stream plots)
     "pertpy>=0.9",            # Milo (DA) + scCODA (composition) — bundles both
     "liana>=1.3",             # Cell-cell communication (consensus L-R)
     "scirpy>=0.19",           # V(D)J / immune repertoire (TCR/BCR)

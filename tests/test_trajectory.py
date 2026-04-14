@@ -237,6 +237,59 @@ class TestRunDPT:
 # ---------------------------------------------------------------------------
 
 
+class TestRunPalantir:
+    def test_palantir_basic(self, branching_adata):
+        from scagent.tools.trajectory import run_palantir
+
+        result = run_palantir(
+            branching_adata, root_cell_type="root",
+            cell_type_key="cell_type", num_waypoints=50,
+        )
+
+        assert "palantir_pseudotime" in branching_adata.obs.columns
+        assert result["provenance"]["tool_id"] == "palantir"
+        assert "pseudotime_stats" in result
+        assert "root" in result["pseudotime_stats"]
+
+    def test_palantir_root_has_lowest_pseudotime(self, branching_adata):
+        from scagent.tools.trajectory import run_palantir
+
+        result = run_palantir(
+            branching_adata, root_cell_type="root",
+            cell_type_key="cell_type", num_waypoints=50,
+        )
+
+        stats = result["pseudotime_stats"]
+        root_median = stats["root"]["median"]
+        for ct, ct_stats in stats.items():
+            if ct != "root":
+                assert ct_stats["median"] >= root_median - 0.1, (
+                    f"'{ct}' has lower pseudotime than root"
+                )
+
+    def test_palantir_requires_root(self, branching_adata):
+        from scagent.tools.trajectory import run_palantir
+
+        with pytest.raises(ValueError, match="Must provide either"):
+            run_palantir(branching_adata)
+
+    def test_palantir_requires_pca(self):
+        import anndata as ad
+        adata = ad.AnnData(np.random.rand(50, 10).astype(np.float32))
+        from scagent.tools.trajectory import run_palantir
+
+        with pytest.raises(ValueError, match="PCA"):
+            run_palantir(adata, root_cell_index=0)
+
+
+class TestRunCellRankValidation:
+    def test_cellrank_requires_velocity(self, simple_adata):
+        from scagent.tools.trajectory import run_cellrank
+
+        with pytest.raises(ValueError, match="velocity"):
+            run_cellrank(simple_adata)
+
+
 class TestRunScVeloValidation:
     def test_scvelo_refuses_without_spliced(self, simple_adata):
         from scagent.tools.trajectory import run_scvelo
@@ -258,7 +311,7 @@ class TestRunScVeloValidation:
 
 
 class TestTrajectoryDAG:
-    def test_trajectory_dag_has_paga_step(self):
+    def test_trajectory_dag_has_steps(self):
         from scagent.dag import AnalysisDAG, _developmental_trajectory_steps
         from unittest.mock import MagicMock
 
@@ -272,6 +325,7 @@ class TestTrajectoryDAG:
         assert "paga" in step_ids
         assert "pseudotime" in step_ids
         assert "rna_velocity" in step_ids
+        assert "fate_mapping" in step_ids
 
     def test_trajectory_dag_ordering(self):
         from scagent.dag import _developmental_trajectory_steps
@@ -288,8 +342,11 @@ class TestTrajectoryDAG:
         # Pseudotime must come after PAGA and annotation
         assert step_ids.index("pseudotime") > step_ids.index("paga")
         assert step_ids.index("pseudotime") > step_ids.index("annotation")
+        # Fate mapping must come after velocity
+        assert step_ids.index("fate_mapping") > step_ids.index("rna_velocity")
 
-    def test_trajectory_dag_tool_ids(self):
+    def test_trajectory_dag_uses_palantir(self):
+        """DAG should use Palantir for pseudotime, not DPT. [BP-2 Ch. 14]"""
         from scagent.dag import _developmental_trajectory_steps
         from unittest.mock import MagicMock
 
@@ -300,10 +357,11 @@ class TestTrajectoryDAG:
         tool_map = {s.id: s.tool_id for s in steps}
 
         assert tool_map["paga"] == "paga"
-        assert tool_map["pseudotime"] == "diffusion_pseudotime"
+        assert tool_map["pseudotime"] == "palantir"
         assert tool_map["rna_velocity"] == "scvelo_velocity"
+        assert tool_map["fate_mapping"] == "cellrank"
 
-    def test_rna_velocity_is_optional(self):
+    def test_velocity_and_fate_mapping_optional(self):
         from scagent.dag import _developmental_trajectory_steps
         from unittest.mock import MagicMock
 
@@ -312,6 +370,9 @@ class TestTrajectoryDAG:
 
         steps = _developmental_trajectory_steps(ctx)
         vel_step = next(s for s in steps if s.id == "rna_velocity")
+        fate_step = next(s for s in steps if s.id == "fate_mapping")
 
         assert vel_step.required is False
         assert vel_step.conditional is True
+        assert fate_step.required is False
+        assert fate_step.conditional is True

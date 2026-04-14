@@ -1,24 +1,31 @@
-"""Trajectory inference tools: PAGA, DPT, scVelo.
+"""Trajectory inference tools: PAGA, Palantir, DPT, scVelo, CellRank.
 
-Implements the Scanpy-native trajectory workflow:
-  1. PAGA — partition-based graph abstraction for topology inference
-  2. DPT  — diffusion pseudotime for cell ordering along the topology
-  3. scVelo — RNA velocity (optional, requires spliced/unspliced layers)
+Recommended workflow (aligned with sc-best-practices.org):
+  1. PAGA      — topology inference (which clusters connect)
+  2. Palantir  — pseudotime + terminal state identification [RECOMMENDED]
+  3. DPT       — simpler pseudotime alternative (fallback)
+  4. scVelo    — RNA velocity (optional, requires spliced/unspliced)
+  5. CellRank  — fate mapping from velocity (recommended over raw stream plots)
 
 Best-practice references:
-  [BP-1] Heumos et al. 2023, Nat Rev Genet 24:550-572
-         §"From discrete states to continuous processes" (pp. 553-554)
-  [BP-2] sc-best-practices.org Ch. 14 (Pseudotemporal ordering)
-  Dynverse benchmark: Saelens et al. 2019, Nat Biotechnol 37:547-554
-    PAGA/PAGA_Tree beats Slingshot on complex topologies (tree +0.14)
+  [BP-2] sc-best-practices.org Ch. 14: Palantir preferred over DPT for pseudotime.
+         DPT inflates values for disconnected lineages; Palantir handles branching.
+  [BP-2] sc-best-practices.org Ch. 15: scVelo for velocity, CellRank for fate mapping.
+         Do NOT over-interpret 2D velocity stream plots.
+  [BP-1] Heumos et al. 2023, §"From discrete states to continuous processes"
 
 Usage::
 
-    from scagent.tools.trajectory import run_paga, run_diffusion_pseudotime, run_scvelo
+    from scagent.tools.trajectory import (
+        run_paga, run_palantir, run_diffusion_pseudotime,
+        run_scvelo, run_cellrank,
+    )
 
     result = run_paga(adata, groups="leiden")
-    result = run_diffusion_pseudotime(adata, root_cell_type="HSC")
+    result = run_palantir(adata, root_cell_type="HSC")       # preferred
+    result = run_diffusion_pseudotime(adata, root_cell_type="HSC")  # fallback
     result = run_scvelo(adata, mode="dynamical")
+    result = run_cellrank(adata)                              # fate mapping
 """
 
 from __future__ import annotations
@@ -541,6 +548,339 @@ def run_scvelo(
             "tool_id": "scvelo_velocity",
             "parameters": {"mode": mode, "n_jobs": n_jobs},
             "median_confidence": median_conf,
+            "n_cells": int(adata.n_obs),
+        },
+    }
+
+
+# ---------------------------------------------------------------------------
+# Palantir — pseudotime + terminal states (RECOMMENDED)
+# ---------------------------------------------------------------------------
+
+
+def run_palantir(
+    adata: ad.AnnData,
+    *,
+    root_cell_type: str | None = None,
+    root_cell_index: int | None = None,
+    cell_type_key: str = "cell_type",
+    n_components: int = 5,
+    knn: int = 30,
+    num_waypoints: int = 500,
+    plot_dir: str | None = None,
+) -> dict[str, Any]:
+    """Run Palantir pseudotime and terminal state inference.
+
+    Palantir models trajectories as Markov chains on diffusion maps,
+    producing continuous pseudotime and per-cell fate probabilities
+    toward identified terminal states. Preferred over DPT for branching
+    trajectories. [BP-2 Ch. 14]
+
+    Parameters
+    ----------
+    adata
+        Must have PCA computed.
+    root_cell_type
+        Name of the root cell type. The most stem-like cell is
+        auto-selected via diffusion components.
+    root_cell_index
+        Explicit root cell index. Overrides ``root_cell_type``.
+    cell_type_key
+        Column in ``adata.obs`` with cell type labels.
+    n_components
+        Number of diffusion components for multiscale space.
+    knn
+        Number of nearest neighbors.
+    num_waypoints
+        Number of waypoints for trajectory computation.
+    plot_dir
+        Directory for pseudotime plots.
+
+    Returns
+    -------
+    Dict with ``pseudotime_stats``, ``terminal_states``, ``summary``,
+    ``provenance``, ``plots``, ``warnings``.
+    """
+    try:
+        import palantir
+    except ImportError:
+        raise ImportError(
+            "palantir is required. Install with: pip install palantir"
+        )
+
+    import scanpy as sc
+
+    result_warnings: list[str] = []
+    plots: list[str] = []
+
+    # --- Validate ---
+    if "X_pca" not in adata.obsm:
+        raise ValueError("PCA not found. Run sc.tl.pca() first.")
+
+    # --- Determine root cell ---
+    # Compute diffusion maps via Palantir
+    palantir.utils.run_diffusion_maps(adata, n_components=n_components, knn=knn)
+
+    if root_cell_index is not None:
+        root_cell = adata.obs_names[root_cell_index]
+        root_info = f"explicit index {root_cell_index}"
+    elif root_cell_type is not None:
+        if cell_type_key not in adata.obs.columns:
+            raise ValueError(
+                f"Cell type key '{cell_type_key}' not in adata.obs. "
+                f"Available: {list(adata.obs.columns)}"
+            )
+        ct_mask = adata.obs[cell_type_key] == root_cell_type
+        if ct_mask.sum() == 0:
+            available = list(adata.obs[cell_type_key].unique())
+            raise ValueError(
+                f"Root cell type '{root_cell_type}' not found. "
+                f"Available types: {available}"
+            )
+
+        # Pick most extreme cell in multiscale space within root cluster
+        ms_data = adata.obsm.get("X_palantir_multiscale",
+                                  adata.obsm.get("DM_EigenVectors"))
+        if ms_data is None:
+            raise ValueError("Palantir diffusion maps failed to compute.")
+
+        ct_indices = np.where(ct_mask)[0]
+        ct_ms = ms_data[ct_indices]
+        # Use the cell with minimum value in first component
+        best_idx = ct_indices[np.argmin(ct_ms[:, 0])]
+        root_cell = adata.obs_names[best_idx]
+        root_info = f"auto-selected from '{root_cell_type}' (index {best_idx})"
+    else:
+        raise ValueError(
+            "Must provide either root_cell_type or root_cell_index."
+        )
+
+    # --- Compute multiscale space and run Palantir ---
+    palantir.utils.determine_multiscale_space(adata)
+
+    pr_res = palantir.utils.run_palantir(
+        adata,
+        early_cell=root_cell,
+        num_waypoints=num_waypoints,
+    )
+
+    # --- Extract results ---
+    pseudotime = adata.obs["palantir_pseudotime"].values
+    entropy = adata.obs.get("palantir_entropy", pd.Series(dtype=float)).values
+
+    # Terminal states
+    terminal_states = []
+    if "palantir_fate_probabilities" in adata.obsm:
+        fate_probs = adata.obsm["palantir_fate_probabilities"]
+        if hasattr(fate_probs, 'columns'):
+            terminal_states = list(fate_probs.columns)
+
+    # Per-cluster pseudotime stats
+    pt_stats = {}
+    if cell_type_key in adata.obs.columns:
+        for ct in adata.obs[cell_type_key].unique():
+            ct_vals = pseudotime[adata.obs[cell_type_key] == ct]
+            pt_stats[str(ct)] = {
+                "median": float(np.median(ct_vals)),
+                "mean": float(np.mean(ct_vals)),
+                "std": float(np.std(ct_vals)),
+                "n_cells": int(len(ct_vals)),
+            }
+
+    ordered_types = sorted(pt_stats.items(), key=lambda x: x[1]["median"])
+
+    # --- Plots ---
+    if plot_dir:
+        pdir = Path(plot_dir)
+        pdir.mkdir(parents=True, exist_ok=True)
+
+        if "X_umap" in adata.obsm:
+            try:
+                fig, ax = plt.subplots(figsize=(8, 6))
+                sc.pl.umap(adata, color="palantir_pseudotime", ax=ax,
+                           show=False, color_map="gnuplot2",
+                           title="Palantir Pseudotime")
+                path = str(pdir / "palantir_pseudotime_umap.png")
+                fig.savefig(path, dpi=150, bbox_inches="tight")
+                plt.close(fig)
+                plots.append(path)
+            except Exception as e:
+                logger.warning("Palantir UMAP plot failed: %s", e)
+
+        if cell_type_key in adata.obs.columns:
+            try:
+                order = [ct for ct, _ in ordered_types]
+                fig, ax = plt.subplots(figsize=(max(10, len(order)), 6))
+                sc.pl.violin(adata, keys="palantir_pseudotime",
+                             groupby=cell_type_key, order=order,
+                             ax=ax, show=False, rotation=45)
+                ax.set_title("Palantir pseudotime by cell type")
+                path = str(pdir / "palantir_violin.png")
+                fig.savefig(path, dpi=150, bbox_inches="tight")
+                plt.close(fig)
+                plots.append(path)
+            except Exception as e:
+                logger.warning("Palantir violin plot failed: %s", e)
+
+    return {
+        "pseudotime_stats": pt_stats,
+        "cell_ordering": [ct for ct, _ in ordered_types],
+        "terminal_states": terminal_states,
+        "root_info": root_info,
+        "summary": (
+            f"Palantir pseudotime computed. Root: {root_info}. "
+            f"Terminal states: {terminal_states if terminal_states else 'auto-detected'}. "
+            f"Ordering (early→late): "
+            f"{' → '.join(ct for ct, _ in ordered_types[:6])}"
+            f"{'...' if len(ordered_types) > 6 else ''}."
+        ),
+        "plots": plots,
+        "warnings": result_warnings,
+        "provenance": {
+            "tool_id": "palantir",
+            "parameters": {
+                "root_cell_type": root_cell_type,
+                "root_cell_index": root_cell_index,
+                "n_components": n_components,
+                "knn": knn,
+                "num_waypoints": num_waypoints,
+            },
+            "root_info": root_info,
+            "n_terminal_states": len(terminal_states),
+            "n_cells": int(len(pseudotime)),
+        },
+    }
+
+
+# ---------------------------------------------------------------------------
+# CellRank — fate mapping from velocity (RECOMMENDED over raw streams)
+# ---------------------------------------------------------------------------
+
+
+def run_cellrank(
+    adata: ad.AnnData,
+    *,
+    cluster_key: str = "leiden",
+    n_states: int | None = None,
+    plot_dir: str | None = None,
+) -> dict[str, Any]:
+    """Run CellRank fate mapping from RNA velocity.
+
+    CellRank uses the velocity field to compute a Markov chain transition
+    matrix, then identifies terminal/initial states and fate probabilities.
+    Operates in high-dimensional space, avoiding misleading 2D stream
+    plot artifacts. [BP-2 Ch. 15]
+
+    Parameters
+    ----------
+    adata
+        Must have RNA velocity computed (``adata.layers["velocity"]``).
+    cluster_key
+        Cluster labels for terminal state naming.
+    n_states
+        Number of terminal states. ``None`` for automatic detection.
+    plot_dir
+        Directory for fate plots.
+
+    Returns
+    -------
+    Dict with ``terminal_states``, ``initial_states``, ``summary``,
+    ``provenance``, ``plots``, ``warnings``.
+    """
+    try:
+        import cellrank as cr
+    except ImportError:
+        raise ImportError(
+            "cellrank is required for fate mapping. "
+            "Install with: pip install cellrank"
+        )
+
+    result_warnings: list[str] = []
+    plots: list[str] = []
+
+    # --- Validate ---
+    if "velocity" not in adata.layers:
+        raise ValueError(
+            "RNA velocity not found in adata.layers['velocity']. "
+            "Run run_scvelo() first."
+        )
+
+    if cluster_key not in adata.obs.columns:
+        result_warnings.append(
+            f"Cluster key '{cluster_key}' not found. "
+            "Terminal states will be named by cell index."
+        )
+
+    # --- Build velocity kernel ---
+    vk = cr.kernels.VelocityKernel(adata)
+    vk.compute_transition_matrix()
+
+    # --- Identify terminal states ---
+    estimator = cr.estimators.GPCCA(vk)
+
+    if n_states is not None:
+        estimator.fit(n_states=n_states)
+    else:
+        estimator.fit()
+
+    estimator.predict_terminal_states()
+
+    # Extract terminal states
+    terminal_states = []
+    if "terminal_states" in adata.obs.columns:
+        ts = adata.obs["terminal_states"].dropna().unique()
+        terminal_states = [str(s) for s in ts]
+
+    # Try to identify initial states too
+    initial_states = []
+    try:
+        estimator.predict_initial_states()
+        if "initial_states" in adata.obs.columns:
+            init_s = adata.obs["initial_states"].dropna().unique()
+            initial_states = [str(s) for s in init_s]
+    except Exception:
+        pass
+
+    # Fate probabilities
+    try:
+        estimator.compute_fate_probabilities()
+        has_fate_probs = True
+    except Exception:
+        has_fate_probs = False
+
+    # --- Plots ---
+    if plot_dir and "X_umap" in adata.obsm:
+        pdir = Path(plot_dir)
+        pdir.mkdir(parents=True, exist_ok=True)
+        try:
+            estimator.plot_fate_probabilities(
+                basis="umap", save=str(pdir / "cellrank_fate.png"),
+                dpi=150,
+            )
+            plots.append(str(pdir / "cellrank_fate.png"))
+        except Exception as e:
+            logger.warning("CellRank fate plot failed: %s", e)
+
+    return {
+        "terminal_states": terminal_states,
+        "initial_states": initial_states,
+        "has_fate_probabilities": has_fate_probs,
+        "summary": (
+            f"CellRank fate mapping: {len(terminal_states)} terminal states "
+            f"({', '.join(terminal_states) if terminal_states else 'detected'}), "
+            f"{len(initial_states)} initial states. "
+            f"{'Fate probabilities computed.' if has_fate_probs else ''}"
+        ),
+        "plots": plots,
+        "warnings": result_warnings,
+        "provenance": {
+            "tool_id": "cellrank",
+            "parameters": {
+                "cluster_key": cluster_key,
+                "n_states": n_states,
+            },
+            "n_terminal_states": len(terminal_states),
+            "n_initial_states": len(initial_states),
             "n_cells": int(adata.n_obs),
         },
     }
