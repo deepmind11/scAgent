@@ -17,7 +17,7 @@ from pathlib import Path
 # Add project root to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from scbench import EvalRunner
+from latch_eval_tools import EvalRunner
 from eval.adapter import scagent_direct_agent
 
 EVAL_DIR = Path(__file__).parent / "evals_canonical_chromium"

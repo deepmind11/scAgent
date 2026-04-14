@@ -37,6 +37,8 @@ VALID_PARADIGMS = frozenset({
     "developmental_trajectory",
     "perturbation_screen",
     "temporal_longitudinal",
+    "immune_repertoire",    # V(D)J / TCR/BCR clonotype analysis
+    "multimodal",           # CITE-seq (protein + RNA)
 })
 
 VALID_LIBRARY_TYPES = frozenset({"3prime", "5prime", "full_length"})

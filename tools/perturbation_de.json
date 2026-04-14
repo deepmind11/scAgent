@@ -1,0 +1,35 @@
+{
+  "tool_id": "perturbation_de",
+  "name": "Perturbation Differential Expression",
+  "category": "differential_expression",
+  "framework": "scanpy",
+  "function": "scagent.tools.perturbation.run_perturbation_de",
+  "valid_after": ["guide_assignment"],
+  "valid_before": ["gsea"],
+  "paradigms": ["perturbation_screen"],
+  "parameters": {
+    "control_label": {
+      "type": "string",
+      "default": "non-targeting",
+      "guidance": "Label for non-targeting control guides."
+    },
+    "min_cells": {
+      "type": "int",
+      "default": 50,
+      "guidance": "Minimum cells per perturbation. Skip those below this."
+    },
+    "alpha": {
+      "type": "float",
+      "default": 0.05,
+      "guidance": "Adjusted p-value threshold for significance."
+    }
+  },
+  "outputs": {
+    "de_results": "Per-perturbation DE tables with log2FC, p-values, and gene rankings"
+  },
+  "validation": {
+    "check": "Ensure sufficient control cells (≥50) and that perturbation effects are biologically plausible (target gene should be among top DE genes if knockdown is effective)."
+  },
+  "notes": "Cell-level Wilcoxon tests are acceptable for Perturb-seq (cells are independent perturbation events). This is different from cross-condition DE where pseudobulk is mandatory.",
+  "provenance_captures": ["control_label", "min_cells", "n_perturbations_tested"]
+}

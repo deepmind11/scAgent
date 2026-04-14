@@ -79,7 +79,7 @@ Based on Füllgrabe et al. (2020) "Guidelines for reporting single-cell RNA-seq 
 
   // ── Identity ──
   "project_id": "proj_2026_04_pbmc_aging",
-  "paradigm": "disease_vs_healthy",         // ← from the 9 paradigms
+  "paradigm": "disease_vs_healthy",         // ← from the 7 paradigms
   "created": "2026-04-11T10:00:00Z",
 
   // ── minSCe metadata ──
@@ -195,37 +195,70 @@ All 31 tool schemas live flat in `tools/` — no subdirectories. Categories are 
 
 ```
 tools/
-├── load_10x_h5.json          # loading
-├── filter_cells.json          # qc
-├── filter_genes.json          # qc
-├── scrublet_doublets.json     # qc
-├── log_normalize.json         # normalization
-├── highly_variable_genes.json # feature_selection
-├── pca.json                   # dimensionality_reduction
-├── umap.json                  # dimensionality_reduction
-├── neighbors.json             # graph
-├── harmony.json               # integration
-├── scvi.json                  # integration
-├── scanorama.json             # integration
-├── bbknn.json                 # integration
-├── leiden.json                # clustering
-├── louvain.json               # clustering
-├── celltypist.json            # annotation
-├── validate_annotation.json   # annotation
-├── query_markers.json         # annotation
-├── wilcoxon_markers.json      # differential_expression
-├── deseq2_pseudobulk.json     # differential_expression
-├── edger_pseudobulk.json      # differential_expression
-├── monocle3.json              # trajectory
-├── paga.json                  # trajectory
-├── slingshot.json             # trajectory
-├── scvelo.json                # trajectory
-├── cellchat.json              # communication
-├── cellphonedb.json           # communication
-├── gsea.json                  # enrichment
-├── cluster_profiler.json      # enrichment
-├── sccoda.json                # composition
-└── milor.json                 # composition
+├── load_10x_h5.json           # loading
+├── filter_cells.json           # qc
+├── filter_genes.json           # qc
+├── scrublet_doublets.json      # qc
+├── log_normalize.json          # normalization
+├── highly_variable_genes.json  # feature_selection
+├── pca.json                    # dimensionality_reduction
+├── umap.json                   # dimensionality_reduction
+├── neighbors.json              # graph
+├── harmony.json                # integration
+├── scvi.json                   # integration
+├── scanorama.json              # integration
+├── bbknn.json                  # integration
+├── leiden.json                 # clustering
+├── louvain.json                # clustering
+├── celltypist.json             # annotation
+├── validate_annotation.json    # annotation
+├── query_markers.json          # annotation
+├── wilcoxon_markers.json       # differential_expression
+├── deseq2_pseudobulk.json      # differential_expression
+├── edger_pseudobulk.json       # differential_expression
+├── paga.json                   # trajectory (topology)
+├── diffusion_pseudotime.json   # trajectory (ordering) — NEW
+├── slingshot.json              # trajectory (R-only, deferred)
+├── scvelo.json                 # trajectory (RNA velocity)
+├── guide_assignment.json       # perturbation — NEW
+├── perturbation_de.json        # perturbation — NEW
+├── cellchat.json               # communication (R-only, deferred)
+├── cellphonedb.json            # communication
+├── gsea.json                   # enrichment
+├── cluster_profiler.json       # enrichment
+├── sccoda.json                 # composition
+└── milor.json                  # composition
+```
+
+### Implemented Tool Wrappers (`scagent/tools/`)
+
+Python implementations that the agent calls. Each follows the same pattern:
+validate inputs → run analysis → generate plots → return structured result + provenance.
+
+```
+scagent/tools/
+├── loading.py          # Load 10x data
+├── qc.py               # QC metrics + filtering
+├── doublets.py          # Scrublet doublet detection
+├── normalize.py         # Log-normalization
+├── feature_selection.py # HVG selection
+├── pca.py               # PCA
+├── neighbors.py         # KNN graph
+├── integration.py       # Harmony batch correction
+├── clustering.py        # Leiden/Louvain
+├── embedding.py         # UMAP
+├── markers.py           # Wilcoxon marker genes
+├── annotation.py        # CellTypist annotation
+├── pseudobulk_de.py     # Pseudobulk DE (PyDESeq2)
+├── enrichment.py        # GSEA pathway enrichment
+├── knowledge_tools.py   # Marker gene knowledge queries
+├── trajectory.py        # PAGA + DPT + scVelo — NEW (chunk 11)
+├── composition.py       # scCODA + Milo via pertpy — NEW (chunk 11)
+├── communication.py     # LIANA+ consensus L-R — NEW (chunk 11)
+├── perturbation.py      # Guide assignment + perturbation DE — NEW (chunk 11)
+├── repertoire.py        # Scirpy: VDJ loading + clonotype — NEW (chunk 11)
+├── multimodal.py        # CITE-seq: ADT + CLR + WNN — NEW (chunk 11)
+└── pipeline.py          # Pipeline orchestration
 ```
 
 ---
@@ -325,13 +358,55 @@ cellranger_multi
 cellranger_multi → qc → normalization → hvg → pca → integration
        │
        ├→ neighbor_graph → clustering → annotation
+       │         │              │
+       │         │              └→ PAGA topology → DPT pseudotime
        │         │
-       │         ├→ paga_trajectory
-       │         ├→ monocle3_pseudotime
-       │         └→ rna_velocity (scvelo)
+       │         └→ RNA velocity (scVelo, optional — requires spliced/unspliced)
        │
-       └→ marker_de → tf_analysis (scenic)
+       └→ marker_de
 ```
+
+Tool IDs: `paga` → `diffusion_pseudotime` → `scvelo_velocity` (optional).
+PAGA beats Slingshot on complex topologies (tree: 0.770 vs 0.630, Saelens et al. 2019).
+DPT ordering follows PAGA topology. scVelo requires velocyto/STARsolo preprocessing.
+
+### Default DAG for `perturbation_screen` paradigm:
+
+```
+shared_prefix → annotation → guide_assignment → perturbation_de → enrichment
+```
+
+### Default DAG for `temporal_longitudinal` paradigm:
+
+```
+shared_prefix → batch_correction (always required) → neighbors → clustering → annotation
+       │
+       ├→ pseudobulk_de (timepoint contrasts)
+       ├→ composition (proportion trends over time)
+       └→ pathway_enrichment
+```
+
+Batch correction is mandatory — different timepoints = different batches [BP-1].
+
+### Default DAG for `immune_repertoire` paradigm:
+
+```
+shared_prefix → annotation → load_vdj → clonotype_analysis → repertoire_overlap
+```
+
+Uses Scirpy (scverse) for TCR/BCR analysis from 10x Chromium VDJ.
+
+### Default DAG for `multimodal` (CITE-seq) paradigm:
+
+```
+load → qc → normalize → hvg → pca
+                                  ↘
+load_protein → normalize_protein (CLR) → WNN → clustering → annotation
+                                                    ↗
+                               protein_markers ────┘
+```
+
+Uses muon for WNN (weighted nearest neighbors) joint RNA + protein graph.
 
 ---
 
@@ -831,10 +906,10 @@ scAgent addresses all four by construction — the experiment context tells the 
 - [ ] DE pipeline (markers + pseudobulk)
 
 ### Phase 4: Polish (Weeks 10-12)
-- [ ] Full DAG for all 9 paradigms
+- [x] Full DAG for all 7 paradigms (chunk 11: trajectory, temporal, perturbation, repertoire, multimodal)
 - [ ] Context compaction strategy
 - [ ] Export: provenance file, methods section, reproducibility package
-- [ ] Tool registry expanded to 30+ tools
+- [x] Tool registry expanded to 34 tools + 21 Python wrappers
 - [ ] Documentation and onboarding flow
 
 ### Phase 5: Validation (Post-launch)

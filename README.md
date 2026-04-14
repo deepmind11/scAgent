@@ -66,7 +66,7 @@ scAgent passes **6 out of 7** canonical tasks (85.7%) on [SC-Bench](https://gith
 | Clustering | ✅ Pass |
 | Cell Type Annotation | ✅ Pass |
 | Differential Expression | ✅ Pass |
-| Trajectory Analysis | ❌ Fail (tools not yet implemented) |
+| Trajectory Analysis | ❌ Fail (terminal marker recovery) |
 
 <details>
 <summary>Reproduce the evaluation</summary>
@@ -103,11 +103,11 @@ The evaluations use [SC-Bench](https://github.com/latchbio/scbench) by [LatchBio
 
 ## Key Features
 
-### 30+ Analysis Tools
+### 34 Analysis Tools Across 7 Paradigms
 
-Full pipeline from raw counts to publication: QC → normalization → HVG → PCA → batch integration (Harmony, scVI, BBKNN, Scanorama) → clustering (Leiden/Louvain) → cell type annotation (CellTypist) → differential expression (pseudobulk DESeq2/edgeR, Wilcoxon) → pathway enrichment (GSEA, ClusterProfiler) → cell communication (CellChat, CellPhoneDB). Trajectory analysis tools (Monocle3, Slingshot, scVelo, PAGA) have JSON schemas defined but are not yet implemented.
+Full pipeline from raw counts to publication: QC → normalization → HVG → PCA → batch integration (Harmony, scVI, BBKNN, Scanorama) → clustering (Leiden/Louvain) → cell type annotation (CellTypist) → differential expression (pseudobulk DESeq2/edgeR, Wilcoxon) → pathway enrichment (GSEA, ClusterProfiler) → trajectory inference (PAGA + DPT + scVelo) → compositional analysis (scCODA + Milo) → cell communication (LIANA+) → perturbation analysis (guide assignment + DE) → immune repertoire (Scirpy: clonotype, diversity) → multimodal CITE-seq (CLR + WNN).
 
-Each tool is defined by a JSON schema in [`tools/`](tools/) with parameter types, constraints, and literature-backed defaults. Default parameters and analysis guidelines are derived from [Best Practices for Single Cell Analysis across Modalities](https://www.nature.com/articles/s41576-023-00586-w) (Heumos et al., 2023) and the [10x Genomics Analysis Guide](https://www.10xgenomics.com/analysis-guides/best-practices-analysis-10x-single-cell-rnaseq-data). Per-step reference summaries are in [`best_practices/reference/`](best_practices/reference/).
+Each tool is defined by a JSON schema in [`tools/`](tools/) with parameter types, constraints, and literature-backed defaults. 21 Python tool wrappers in [`scagent/tools/`](scagent/tools/) implement the analysis logic with input validation, guard rails, plotting, and structured provenance output. Default parameters and analysis guidelines are derived from [Best Practices for Single Cell Analysis across Modalities](https://www.nature.com/articles/s41576-023-00586-w) (Heumos et al., 2023), the [sc-best-practices.org online book](https://www.sc-best-practices.org/preamble.html) (Theis Lab), and the [10x Genomics Analysis Guide](https://www.10xgenomics.com/analysis-guides/best-practices-analysis-10x-single-cell-rnaseq-data). Per-step reference summaries are in [`best_practices/reference/`](best_practices/reference/).
 
 ### State-Aware Data Inspector
 
@@ -119,7 +119,19 @@ The dependency module ([`scagent/dependencies.py`](scagent/dependencies.py)) enc
 
 ### Paradigm-Aware Analysis DAG
 
-Every experiment can have a paradigm (cell atlas, disease vs. healthy, developmental trajectory, perturbation). The analysis DAG in [`scagent/dag.py`](scagent/dag.py) adapts valid step ordering based on the paradigm — preventing invalid operations like running pseudobulk DE on a single-condition atlas, or clustering on UMAP coordinates.
+Every experiment has a paradigm — one of 7 supported analysis types. The analysis DAG in [`scagent/dag.py`](scagent/dag.py) generates a paradigm-specific step ordering with validated dependencies:
+
+| Paradigm | Key Steps |
+|---|---|
+| `cell_atlas` | Standard QC → clustering → annotation |
+| `disease_vs_healthy` | + pseudobulk DE + composition + enrichment |
+| `developmental_trajectory` | + PAGA topology → DPT pseudotime → scVelo |
+| `perturbation_screen` | + guide assignment → perturbation DE |
+| `temporal_longitudinal` | + mandatory batch correction + time-course DE |
+| `immune_repertoire` | + VDJ loading → clonotype → diversity |
+| `multimodal` | + protein loading → CLR → WNN joint graph |
+
+The DAG prevents invalid operations (pseudobulk DE on single-condition data, clustering on UMAP coordinates) and tracks progress through each step.
 
 ### State Management & Branching
 
@@ -152,22 +164,31 @@ scAgent/
 │   ├── state.py          #   Branch & snapshot management
 │   ├── memory.py         #   Long-term memory (MemPalace/ChromaDB)
 │   ├── provenance.py     #   W3C PROV-O provenance tracking (JSON-LD)
-│   ├── dag.py            #   Paradigm-aware analysis DAG
+│   ├── dag.py            #   Paradigm-aware analysis DAG (7 paradigms)
 │   ├── context.py        #   Experiment context & metadata
 │   ├── knowledge.py      #   Marker gene database
 │   ├── inspector.py      #   AnnData state inspection
 │   ├── dependencies.py   #   Prerequisite checking
 │   ├── export.py         #   Methods section & repro package generation
-│   └── tools/            #   Scanpy/analysis tool implementations
-├── tools/                # Tool registry (~30 JSON schemas)
+│   └── tools/            #   21 analysis tool implementations
+│       ├── trajectory.py     # PAGA + DPT + scVelo
+│       ├── composition.py    # scCODA + Milo (via pertpy)
+│       ├── communication.py  # LIANA+ consensus L-R
+│       ├── perturbation.py   # Guide assignment + perturbation DE
+│       ├── repertoire.py     # Scirpy: VDJ + clonotype analysis
+│       ├── multimodal.py     # CITE-seq: CLR + WNN
+│       └── ...               # QC, clustering, DE, annotation, etc.
+├── tools/                # Tool registry (34 JSON schemas)
 ├── .pi/                  # Agent configuration
 │   ├── SYSTEM.md         #   System prompt (identity + rules)
 │   ├── settings.json     #   Model defaults
-│   └── skills/           #   19 step-specific instruction sets
+│   └── skills/           #   26 step-specific instruction sets
 ├── best_practices/       # Literature-backed reference guides
+│   ├── sc_best_practices.pdf        # Heumos et al. 2023
+│   ├── best_practice_10xGenomics_scRNAseq.pdf  # 10x official guide
 │   └── reference/        #   Per-step best practice summaries
 ├── eval/                 # SC-Bench evaluation framework & results
-├── tests/                # Unit and integration tests
+├── tests/                # 25 test files, 128+ tests
 └── pyproject.toml        # Package metadata & dependencies
 ```
 
@@ -208,12 +229,9 @@ See [outputs/architecture.md](outputs/architecture.md) for the full system desig
 
 ## Coming Soon
 
-- **Trajectory inference** — Monocle 3, PAGA, scVelo tool implementations
-- **Perturbation analysis** — guide assignment and perturbation effect quantification for CRISPR screens
-- **Immune repertoire** — V(D)J / TCR / BCR analysis integration
-- **Multi-modal** — CITE-seq protein + RNA analysis (WNN)
-- **Composition analysis** — scCODA, miloR for differential abundance testing
-- **Full SC-Bench evaluation** — run against all 394 tasks (currently limited to 7 canonical)
+- **Full SC-Bench evaluation** — run against all 394 tasks (currently limited to 7 canonical Chromium evals)
+- **Improved trajectory eval** — the current handler uses a naive first-diffusion-component approach; integrating the PAGA+DPT tools could improve terminal marker recovery
+- **scGPT / foundation model embeddings** — alternative to PCA for annotation transfer (tool schema defined, awaiting GPU support)
 
 ## License
 

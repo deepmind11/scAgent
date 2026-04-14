@@ -1,0 +1,41 @@
+{
+  "tool_id": "diffusion_pseudotime",
+  "name": "Diffusion Pseudotime (DPT)",
+  "category": "trajectory",
+  "framework": "scanpy",
+  "function": "sc.tl.dpt",
+  "valid_after": ["paga", "clustering", "neighbor_graph"],
+  "valid_before": [],
+  "paradigms": ["developmental_trajectory"],
+  "parameters": {
+    "root_cell_type": {
+      "type": "string",
+      "default": null,
+      "guidance": "Name of the starting cell type (e.g., 'HSC', 'Neural progenitor'). The most stem-like cell is auto-selected via diffusion components."
+    },
+    "root_cell_index": {
+      "type": "int",
+      "default": null,
+      "guidance": "Explicit root cell index. Overrides root_cell_type."
+    },
+    "n_dcs": {
+      "type": "int",
+      "default": 15,
+      "guidance": "Number of diffusion components. 10-20 is typical."
+    },
+    "cell_type_key": {
+      "type": "string",
+      "default": "cell_type",
+      "guidance": "obs key with cell type annotations."
+    }
+  },
+  "outputs": {
+    "pseudotime": "adata.obs['dpt_pseudotime']",
+    "diffmap": "adata.obsm['X_diffmap']"
+  },
+  "validation": {
+    "check": "Check for infinite pseudotime values (disconnected lineages). If >5% cells have inf pseudotime, consider subsetting or lowering clustering resolution. [BP-2 Ch. 14]"
+  },
+  "notes": "DPT orders cells along a developmental trajectory relative to a root cell. Requires neighbors computed and a root specification. PAGA should be run first for topology validation. DPT can inflate pseudotime for disconnected lineages — compare with Palantir if multiple lineages are present.",
+  "provenance_captures": ["root_cell_type", "root_cell_index", "n_dcs", "n_cells_infinite_pt"]
+}

@@ -1,0 +1,29 @@
+{
+  "tool_id": "guide_assignment",
+  "name": "CRISPR Guide Assignment",
+  "category": "perturbation",
+  "framework": "scagent",
+  "function": "scagent.tools.perturbation.assign_guides",
+  "valid_after": ["clustering", "annotation"],
+  "valid_before": ["perturbation_de"],
+  "paradigms": ["perturbation_screen"],
+  "parameters": {
+    "guide_calls_key": {
+      "type": "string",
+      "default": "guide_ids",
+      "guidance": "Column in adata.obs with guide IDs from Cell Ranger multi."
+    },
+    "max_guides_per_cell": {
+      "type": "int",
+      "default": 1,
+      "guidance": "Max guides per cell. Cells with more are marked 'multi-guide'."
+    }
+  },
+  "outputs": {
+    "perturbation": "adata.obs['perturbation']",
+    "guide": "adata.obs['guide']",
+    "n_guides": "adata.obs['n_guides']"
+  },
+  "notes": "Assigns CRISPR guide identities to cells from Cell Ranger multi output or feature barcode matrix. Handles multi-guide cells and unassigned cells.",
+  "provenance_captures": ["guide_calls_key", "n_assigned", "n_perturbations"]
+}

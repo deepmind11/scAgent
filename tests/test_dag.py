@@ -82,7 +82,7 @@ class TestTrajectoryDAG:
         ctx = _make_ctx(tmp_dir, paradigm="developmental_trajectory")
         dag = AnalysisDAG.from_context(ctx)
         step_ids = [s.id for s in dag.steps]
-        assert "trajectory" in step_ids
+        assert "paga" in step_ids
         assert "pseudotime" in step_ids
 
     def test_no_pseudobulk_de(self, tmp_dir):

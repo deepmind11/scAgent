@@ -27,7 +27,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from scbench import EvalRunner
+from latch_eval_tools import EvalRunner
 
 EVAL_DIR = Path(__file__).parent / "evals_canonical_chromium"
 SCAGENT_ROOT = Path(__file__).resolve().parent.parent

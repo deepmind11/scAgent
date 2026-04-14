@@ -48,10 +48,14 @@ def scagent_direct_agent(task_prompt: str, work_dir: Path) -> dict:
     -------
     dict with ``"answer"`` key containing the eval answer.
     """
-    # Find the .h5ad file(s) in work_dir
-    h5ad_files = list(Path(work_dir).glob("*.node"))
+    # Find the .h5ad file(s) in work_dir (may be in data/ subdirectory)
+    h5ad_files = list(Path(work_dir).glob("*.h5ad"))
     if not h5ad_files:
-        h5ad_files = list(Path(work_dir).glob("*.h5ad"))
+        h5ad_files = list(Path(work_dir).glob("**/*.h5ad"))
+    if not h5ad_files:
+        h5ad_files = list(Path(work_dir).glob("*.node"))
+    if not h5ad_files:
+        h5ad_files = list(Path(work_dir).glob("**/*.node"))
     if not h5ad_files:
         raise FileNotFoundError(f"No data files found in {work_dir}")
 

@@ -106,22 +106,186 @@ def _disease_vs_healthy_steps(ctx: ExperimentContext) -> list[DAGStep]:
 
 
 def _developmental_trajectory_steps(ctx: ExperimentContext) -> list[DAGStep]:
-    """Developmental trajectory: pseudotime / lineage analysis."""
+    """Developmental trajectory: pseudotime / lineage analysis.
+
+    Workflow: shared prefix → PAGA topology → DPT pseudotime → (optional) scVelo.
+    Best-practice refs: [BP-1] pp. 553-554, [BP-2] Ch. 14.
+    """
     steps = _cell_atlas_steps(ctx)  # shared prefix
 
     # Add trajectory-specific steps
     steps.extend([
         DAGStep(
-            "trajectory", "Trajectory inference", "trajectory",
-            "paga", ["clustering", "annotation"],
+            "paga", "PAGA trajectory topology", "trajectory",
+            "paga", ["clustering"],
         ),
         DAGStep(
-            "pseudotime", "Pseudotime", "trajectory",
-            "monocle3", ["trajectory"],
+            "pseudotime", "Diffusion pseudotime", "trajectory",
+            "diffusion_pseudotime", ["paga", "annotation"],
         ),
         DAGStep(
             "rna_velocity", "RNA velocity", "trajectory",
-            "scvelo", ["neighbors"], required=False, conditional=True,
+            "scvelo_velocity", ["neighbors"],
+            required=False, conditional=True,
+        ),
+    ])
+
+    return steps
+
+
+def _perturbation_screen_steps(ctx: ExperimentContext) -> list[DAGStep]:
+    """Perturbation screen: CRISPR / Perturb-seq analysis.
+
+    Workflow: shared prefix → guide assignment → perturbation DE → enrichment.
+    Best-practice refs: [BP-1] p. 557, [BP-2] Ch. 20.
+    """
+    steps = _cell_atlas_steps(ctx)  # shared prefix
+
+    steps.extend([
+        DAGStep(
+            "guide_assignment", "Guide assignment", "perturbation",
+            "guide_assignment", ["annotation"],
+        ),
+        DAGStep(
+            "perturbation_de", "Perturbation DE", "differential_expression",
+            "perturbation_de", ["guide_assignment"],
+        ),
+        DAGStep(
+            "perturbation_enrichment", "Perturbation enrichment", "enrichment",
+            "gsea", ["perturbation_de"], required=False,
+        ),
+    ])
+
+    return steps
+
+
+def _temporal_longitudinal_steps(ctx: ExperimentContext) -> list[DAGStep]:
+    """Temporal / longitudinal: time-series cross-condition analysis.
+
+    Reuses existing tools: pseudobulk DE for pairwise timepoint contrasts,
+    composition for proportion trends, trajectory for temporal ordering.
+    Batch correction is critical — different timepoints = different batches.
+    Best-practice refs: [BP-1] pp. 552-553, 555, [BP-2] Ch. 18.
+    """
+    steps = [
+        DAGStep("load", "Load data", "loading", "load_10x_h5"),
+        DAGStep("qc_metrics", "QC metrics", "qc", "calculate_qc_metrics", ["load"]),
+        DAGStep("filter_cells", "Filter cells", "qc", "filter_cells", ["qc_metrics"]),
+        DAGStep("filter_genes", "Filter genes", "qc", "filter_genes", ["filter_cells"]),
+        DAGStep("doublet_detection", "Doublet detection", "qc", "scrublet_doublets", ["filter_genes"]),
+        DAGStep("normalize", "Normalize", "normalization", "log_normalize", ["doublet_detection"]),
+        DAGStep("hvg", "Highly variable genes", "feature_selection", "highly_variable_genes", ["normalize"]),
+        DAGStep("pca", "PCA", "dimensionality_reduction", "pca", ["hvg"]),
+    ]
+
+    # Batch correction is ALWAYS required for temporal data
+    # (different timepoints = different batches) [BP-1]
+    steps.append(DAGStep(
+        "batch_correction", "Batch correction", "integration", "harmony",
+        ["pca"], required=True,
+    ))
+
+    steps.extend([
+        DAGStep("neighbors", "Neighbor graph", "neighbors", "neighbor_graph", ["batch_correction"]),
+        DAGStep("clustering", "Clustering", "clustering", "leiden_clustering", ["neighbors"]),
+        DAGStep("umap", "UMAP embedding", "embedding", "umap", ["neighbors"]),
+        DAGStep("markers", "Marker genes", "differential_expression", "wilcoxon_markers", ["clustering"]),
+        DAGStep("annotation", "Cell type annotation", "annotation", "celltypist_annotation", ["clustering", "markers"]),
+        # Temporal-specific analysis steps
+        DAGStep(
+            "pseudobulk_de", "Pseudobulk DE (timepoints)", "differential_expression",
+            "deseq2_pseudobulk", ["annotation"], required=True,
+        ),
+        DAGStep(
+            "composition", "Composition over time", "composition",
+            "sccoda", ["annotation"], required=False,
+        ),
+        DAGStep(
+            "pathway_enrichment", "Pathway enrichment", "enrichment",
+            "gsea", ["pseudobulk_de"], required=False,
+        ),
+    ])
+
+    return steps
+
+
+def _immune_repertoire_steps(ctx: ExperimentContext) -> list[DAGStep]:
+    """Immune repertoire: V(D)J / TCR/BCR clonotype analysis.
+
+    Workflow: shared GEX prefix → load VDJ → clonotype analysis → overlap.
+    Best-practice refs: [BP-1] pp. 559-560, [BP-2] Ch. 38-39.
+    """
+    steps = _cell_atlas_steps(ctx)  # shared GEX prefix
+
+    steps.extend([
+        DAGStep(
+            "load_vdj", "Load V(D)J data", "loading",
+            "load_vdj", ["load"],
+        ),
+        DAGStep(
+            "clonotype_analysis", "Clonotype analysis", "repertoire",
+            "clonotype_analysis", ["load_vdj", "annotation"],
+        ),
+        DAGStep(
+            "repertoire_overlap", "Repertoire overlap", "repertoire",
+            "repertoire_overlap", ["clonotype_analysis"],
+            required=False,
+        ),
+    ])
+
+    return steps
+
+
+def _multimodal_steps(ctx: ExperimentContext) -> list[DAGStep]:
+    """Multimodal (CITE-seq): RNA + surface protein analysis.
+
+    Workflow: GEX prefix → load protein → normalize protein → WNN → cluster → annotate.
+    Best-practice refs: [BP-1] pp. 558-559, [BP-2] Ch. 32-37.
+    """
+    steps = [
+        DAGStep("load", "Load data", "loading", "load_10x_h5"),
+        DAGStep("qc_metrics", "QC metrics", "qc", "calculate_qc_metrics", ["load"]),
+        DAGStep("filter_cells", "Filter cells", "qc", "filter_cells", ["qc_metrics"]),
+        DAGStep("filter_genes", "Filter genes", "qc", "filter_genes", ["filter_cells"]),
+        DAGStep("doublet_detection", "Doublet detection", "qc", "scrublet_doublets", ["filter_genes"]),
+        DAGStep("normalize", "Normalize", "normalization", "log_normalize", ["doublet_detection"]),
+        DAGStep("hvg", "Highly variable genes", "feature_selection", "highly_variable_genes", ["normalize"]),
+        DAGStep("pca", "PCA", "dimensionality_reduction", "pca", ["hvg"]),
+    ]
+
+    # Protein modality
+    steps.extend([
+        DAGStep(
+            "load_protein", "Load protein data", "loading",
+            "load_protein", ["load"],
+        ),
+        DAGStep(
+            "normalize_protein", "Normalize protein (CLR)", "normalization",
+            "normalize_protein", ["load_protein"],
+        ),
+        DAGStep(
+            "wnn", "Weighted nearest neighbors", "neighbors",
+            "wnn", ["pca", "normalize_protein"],
+        ),
+        DAGStep(
+            "clustering", "Clustering (WNN)", "clustering",
+            "leiden_clustering", ["wnn"],
+        ),
+        DAGStep(
+            "umap", "UMAP embedding", "embedding",
+            "umap", ["wnn"],
+        ),
+        DAGStep(
+            "markers", "Marker genes", "differential_expression",
+            "wilcoxon_markers", ["clustering"],
+        ),
+        DAGStep(
+            "protein_markers", "Protein markers", "differential_expression",
+            "protein_markers", ["clustering", "normalize_protein"],
+        ),
+        DAGStep(
+            "annotation", "Cell type annotation", "annotation",
+            "celltypist_annotation", ["clustering", "markers", "protein_markers"],
         ),
     ])
 
@@ -132,6 +296,10 @@ _PARADIGM_BUILDERS = {
     "cell_atlas": _cell_atlas_steps,
     "disease_vs_healthy": _disease_vs_healthy_steps,
     "developmental_trajectory": _developmental_trajectory_steps,
+    "perturbation_screen": _perturbation_screen_steps,
+    "temporal_longitudinal": _temporal_longitudinal_steps,
+    "immune_repertoire": _immune_repertoire_steps,
+    "multimodal": _multimodal_steps,
 }
 
 
