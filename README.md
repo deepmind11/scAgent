@@ -56,7 +56,7 @@ Example prompts:
 
 ## Evaluation: SC-Bench
 
-scAgent passes **6 out of 7** canonical tasks (85.7%) on [SC-Bench](https://github.com/latchbio/scbench) (Workman et al., 2026, [LatchBio](https://latch.bio)), a benchmark of 394 verifiable problems derived from practical scRNA-seq workflows. The current top baseline model on SC-Bench scores 52.8%.
+scAgent passes **7 out of 7** canonical tasks (100%) on [SC-Bench](https://github.com/latchbio/scbench) (Workman et al., 2026, [LatchBio](https://latch.bio)), a benchmark of 394 verifiable problems derived from practical scRNA-seq workflows. The current top baseline model on SC-Bench scores 52.8%.
 
 | Task | Result |
 |------|--------|
@@ -66,7 +66,7 @@ scAgent passes **6 out of 7** canonical tasks (85.7%) on [SC-Bench](https://gith
 | Clustering | ✅ Pass |
 | Cell Type Annotation | ✅ Pass |
 | Differential Expression | ✅ Pass |
-| Trajectory Analysis | ❌ Fail (terminal marker recovery) |
+| Trajectory Analysis | ✅ Pass |
 
 <details>
 <summary>Reproduce the evaluation</summary>
@@ -230,7 +230,7 @@ See [outputs/architecture.md](outputs/architecture.md) for the full system desig
 ## Coming Soon
 
 - **Full SC-Bench evaluation** — run against all 394 tasks (currently limited to 7 canonical Chromium evals)
-- **Improved trajectory eval** — the current handler uses a naive first-diffusion-component approach; integrating the PAGA+DPT tools could improve terminal marker recovery
+- **Full LLM agent eval** — the subprocess-based LLM runner needs optimization (currently times out at 600s per task)
 - **scGPT / foundation model embeddings** — alternative to PCA for annotation transfer (tool schema defined, awaiting GPU support)
 
 ## License
