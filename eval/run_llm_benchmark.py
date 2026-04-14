@@ -54,23 +54,26 @@ Do NOT include any text or explanation in the answer file — just the raw JSON 
 
 
 def run_agent(prompt: str, model: str) -> tuple[bool, str]:
-    """Run the agent via Feynman in non-interactive mode."""
-    feynman = shutil.which("feynman")
-    if not feynman:
-        print("Error: Feynman not found. Install: curl -fsSL https://feynman.is/install | bash", file=sys.stderr)
+    """Run the agent via pi in non-interactive mode."""
+    pi_bin = shutil.which("pi")
+    if not pi_bin:
+        print("Error: pi not found. Install Feynman: curl -fsSL https://feynman.is/install | bash", file=sys.stderr)
         sys.exit(1)
 
-    env = os.environ.copy()
-    env["FEYNMAN_CODING_AGENT_DIR"] = str(SCAGENT_ROOT / ".pi")
+    # Write prompt to temp file to avoid shell escaping issues
+    prompt_file = Path(tempfile.mktemp(suffix=".md", prefix="eval_prompt_"))
+    prompt_file.write_text(prompt, encoding="utf-8")
 
-    result = subprocess.run(
-        [feynman, "--print", "--no-prompt-templates", "--no-session", "--model", model, prompt],
-        cwd=str(SCAGENT_ROOT),
-        capture_output=True,
-        text=True,
-        timeout=300,
-        env=env,
-    )
+    try:
+        result = subprocess.run(
+            [pi_bin, "-p", "--model", model, f"@{prompt_file}"],
+            cwd=str(SCAGENT_ROOT),
+            capture_output=True,
+            text=True,
+            timeout=300,
+        )
+    finally:
+        prompt_file.unlink(missing_ok=True)
 
     log = result.stdout + "\n" + result.stderr
     return result.returncode == 0, log
@@ -79,7 +82,7 @@ def run_agent(prompt: str, model: str) -> tuple[bool, str]:
 def llm_agent_function(task_prompt: str, work_dir: Path, model: str = "claude-opus-4-6") -> dict:
     """Agent function for EvalRunner that uses the full LLM agent."""
     # Find data file
-    data_files = list(work_dir.glob("*.node")) + list(work_dir.glob("*.h5ad"))
+    data_files = list(work_dir.glob("**/*.h5ad")) + list(work_dir.glob("**/*.node"))
     if not data_files:
         raise FileNotFoundError(f"No data files in {work_dir}")
 
