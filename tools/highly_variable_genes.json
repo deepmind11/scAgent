@@ -16,9 +16,9 @@
     },
     "flavor": {
       "type": "string",
-      "default": "seurat",
+      "default": "seurat_v3",
       "options": ["seurat", "cell_ranger", "seurat_v3"],
-      "guidance": "Method for HVG selection. 'seurat' works on log-normalized data. 'seurat_v3' works on raw counts (before log-norm) and uses variance-stabilizing transformation — often preferred."
+      "guidance": "Method for HVG selection. 'seurat_v3' (default, recommended) uses variance-stabilizing transformation on raw counts — produces more biologically meaningful HVGs that recover known cell-type markers (Hafemeister & Satija 2019). Requires raw counts in adata.X, adata.layers['counts'], or adata.layers['raw_counts']. Falls back to 'seurat' only if no raw counts are available. 'seurat' works on log-normalized data but is biased toward lowly-expressed genes."
     },
     "min_mean": {
       "type": "float",

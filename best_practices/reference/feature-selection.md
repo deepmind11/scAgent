@@ -8,9 +8,9 @@ Select genes that explain biological variation (between subpopulations) rather t
 
 ## Method Recommendation
 
-- **Deviance** (from the `scry` package) identifies highly informative genes by fitting a gene-wise model that assumes constant expression across all cells, then quantifying which genes violate this assumption. "It performed favourably for identifying genes with high variance across subpopulations" in an independent comparison (Heumos et al.).
-- **Key advantage**: Deviance works on raw counts and is therefore **not sensitive to the normalization choice**.
-- **Seurat v3 method** (`flavor='seurat_v3'`) selects HVGs by fitting a mean-variance relationship — the standard default in most Scanpy tutorials.
+- **Seurat v3 method** (`flavor='seurat_v3'`) is the recommended default. It uses a variance-stabilizing transformation on **raw counts** to select HVGs by fitting a mean-variance relationship. It recovers biologically meaningful cell-type markers that the older `seurat` method misses (Hafemeister & Satija, Genome Biology, 2019). **Always use raw counts with this method.**
+- **Deviance** (from the `scry` package) identifies highly informative genes by fitting a gene-wise model that assumes constant expression across all cells, then quantifying which genes violate this assumption. "It performed favourably for identifying genes with high variance across subpopulations" in an independent comparison (Heumos et al.). Also works on raw counts.
+- **Older `seurat` flavor** works on log-normalized data but is **biased toward lowly-expressed genes** and often fails to select known cell-type markers. Use only as a fallback when raw counts are unavailable.
 - **Analytical Pearson residuals** simultaneously normalize and select features — an alternative when you want to skip explicit normalization.
 
 ## Practical Guidance

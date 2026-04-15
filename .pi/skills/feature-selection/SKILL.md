@@ -20,9 +20,20 @@ from scagent.tools.feature_selection import select_hvg
 result = select_hvg(adata, n_top_genes=2000, plot_dir="data/working/plots")
 ```
 
+The default is `flavor='seurat_v3'`, which uses raw counts. The function automatically finds raw counts in `adata.layers['counts']`, `adata.layers['raw_counts']`, or `adata.X` itself. If no raw counts are found, it falls back to `flavor='seurat'` on log-normalized data.
+
+## Critical: Use Raw Counts for HVG Selection
+
+**Always use `seurat_v3` on raw counts when available.** This is the standard best practice (Hafemeister & Satija 2019).
+
+- `seurat_v3` uses a variance-stabilizing transformation on count data — it recovers biologically meaningful markers (cell-type markers, signaling genes) that the older `seurat` method misses.
+- The older `seurat` flavor on log-normalized data is biased toward lowly-expressed genes and misses important markers.
+- Before running HVG, **inspect the dataset** for raw counts: check `adata.layers` (look for `'counts'` or `'raw_counts'`), check whether `adata.X` contains integers, and check `adata.raw`.
+
 ## What to Show the User
 
 - Number of HVGs selected and % of total genes
+- Which flavor and raw counts source was used
 - The mean-vs-dispersion plot (`hvg_selection.png`)
 
 ## Parameter Guidance
