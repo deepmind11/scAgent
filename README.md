@@ -107,7 +107,7 @@ The evaluations use [SC-Bench](https://github.com/latchbio/scbench) by [LatchBio
 
 Full pipeline from raw counts to publication: QC → normalization → HVG → PCA → batch integration (Harmony, scVI, BBKNN, Scanorama) → clustering (Leiden/Louvain) → cell type annotation (CellTypist) → differential expression (pseudobulk DESeq2/edgeR, Wilcoxon) → pathway enrichment (GSEA, ClusterProfiler) → trajectory inference (PAGA + DPT + scVelo) → compositional analysis (scCODA + Milo) → cell communication (LIANA+) → perturbation analysis (guide assignment + DE) → immune repertoire (Scirpy: clonotype, diversity) → multimodal CITE-seq (CLR + WNN).
 
-Each tool is defined by a JSON schema in [`tools/`](tools/) with parameter types, constraints, and literature-backed defaults. 21 Python tool wrappers in [`scagent/tools/`](scagent/tools/) implement the analysis logic with input validation, guard rails, plotting, and structured provenance output. Default parameters and analysis guidelines are derived from [Best Practices for Single Cell Analysis across Modalities](https://www.nature.com/articles/s41576-023-00586-w) (Heumos et al., 2023), the [sc-best-practices.org online book](https://www.sc-best-practices.org/preamble.html) (Theis Lab), and the [10x Genomics Analysis Guide](https://www.10xgenomics.com/analysis-guides/best-practices-analysis-10x-single-cell-rnaseq-data). Per-step reference summaries are in [`best_practices/reference/`](best_practices/reference/).
+Each tool is defined by a JSON schema in [`tools/`](tools/) with parameter types, constraints, and literature-backed defaults. 21 Python tool wrappers in [`scagent/tools/`](scagent/tools/) implement the analysis logic with input validation, guard rails, plotting, and structured provenance output. Default parameters and analysis guidelines are derived from [Best Practices for Single Cell Analysis across Modalities](https://www.nature.com/articles/s41576-023-00586-w) (Heumos et al., 2023), the [sc-best-practices.org online book](https://www.sc-best-practices.org/preamble.html) (Theis Lab), and the [10x Genomics Analysis Guide](https://www.10xgenomics.com/analysis-guides/best-practices-analysis-10x-single-cell-rnaseq-data). Experiment metadata collection follows the [minSCe guidelines](https://doi.org/10.1038/s41587-020-00744-z) (Füllgrabe et al., 2020). Per-step reference summaries are in [`best_practices/reference/`](best_practices/reference/).
 
 ### State-Aware Data Inspector
 
@@ -226,6 +226,7 @@ See [outputs/architecture.md](outputs/architecture.md) for the full system desig
 - [Feynman](https://github.com/getcompanion-ai/feynman) — agent runtime
 - [Scanpy](https://scanpy.readthedocs.io/) — core analysis engine
 - [CellTypist](https://www.celltypist.org/) — cell type annotation
+- [minSCe guidelines](https://doi.org/10.1038/s41587-020-00744-z) (Füllgrabe et al., 2020) — experiment metadata standards for scRNA-seq reporting
 
 ## Coming Soon
 
