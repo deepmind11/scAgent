@@ -222,6 +222,10 @@ See [outputs/architecture.md](outputs/architecture.md) for the full system desig
 
 ## Coming Soon
 
+For future versions of scAgent, the goal is to embed first-principles reasoning directly into the system, enabling the agent to infer insights from the data itself rather than relying solely on standard community-defined thresholds and heuristics.
+
+At present, scAgent does not implement its own agent loop and instead relies on Pi-Monos' agentic framework. A key direction moving forward is to develop a single-cell–specific agent loop that more closely mirrors the reasoning workflow of a computational biologist. This includes structuring the analysis into distinct phases—such as data exploration, quality control, normalization, and interpretation—allowing the agent to make context-aware decisions at each step rather than applying static pipelines.
+
 - **Full SC-Bench evaluation** — run against all 394 tasks (currently limited to 7 canonical Chromium evals)
 - **Programmatic agent** — replace the subprocess-based LLM runner with a direct Anthropic API agent loop (`scagent/agent.py`)
 - **scGPT / foundation model embeddings** — alternative to PCA for annotation transfer (tool schema defined, awaiting GPU support)
