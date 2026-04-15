@@ -56,37 +56,17 @@ Example prompts:
 
 ## Evaluation: SC-Bench
 
-scAgent passes **6 out of 7** canonical tasks (86%) on [SC-Bench](https://github.com/latchbio/scbench) (Workman et al., 2026, [LatchBio](https://latch.bio)), a benchmark of 394 verifiable problems derived from practical scRNA-seq workflows. The current top baseline model on SC-Bench scores 52.8%.
+scAgent is evaluated on [SC-Bench](https://github.com/latchbio/scbench) (Workman et al., 2026, [LatchBio](https://latch.bio)), a benchmark of 394 verifiable problems derived from practical scRNA-seq workflows. The 7 canonical Chromium evaluations are bundled in [`eval/evals_canonical_chromium/`](eval/evals_canonical_chromium/).
 
-| Task | Result |
-|------|--------|
-| QC (cell filtering) | ✅ Pass |
-| Normalization | ✅ Pass |
-| HVG / Feature Selection | ✅ Pass |
-| Clustering | ✅ Pass |
-| Cell Type Annotation | ✅ Pass |
-| Differential Expression | ✅ Pass |
-| Trajectory Analysis | ❌ Fail |
+The eval runs the full LLM agent end-to-end: the agent receives a task prompt, reasons about what analysis to perform, calls tools, and produces a structured answer that is graded automatically.
 
-<details>
-<summary>Reproduce the evaluation</summary>
-
-The 7 canonical Chromium evaluations from SC-Bench are bundled in [`eval/evals_canonical_chromium/`](eval/evals_canonical_chromium/).
-
-**Tool-level benchmark** (no LLM, tests analysis logic directly):
-```bash
-pip install -e ".[eval]"
-python eval/run_benchmark.py
-```
-
-**Full agent benchmark** (LLM interprets task → chooses tools → produces answer):
 ```bash
 pip install -e ".[eval]"
 python eval/run_llm_benchmark.py                        # default: claude-opus-4-6
 python eval/run_llm_benchmark.py --model claude-sonnet-4-5  # or any model
 ```
 
-Both produce pass/fail summaries and save results to `eval/results/`.
+Results are saved to `eval/results/`.
 
 The evaluations use [SC-Bench](https://github.com/latchbio/scbench) by [LatchBio](https://latch.bio) ([eval-graders](https://github.com/latchbio/eval-graders)). The canonical eval JSONs are included under Apache 2.0.
 
@@ -98,8 +78,6 @@ The evaluations use [SC-Bench](https://github.com/latchbio/scbench) by [LatchBio
   note={LatchBio}
 }
 ```
-
-</details>
 
 ## Key Features
 
@@ -231,7 +209,7 @@ See [outputs/architecture.md](outputs/architecture.md) for the full system desig
 ## Coming Soon
 
 - **Full SC-Bench evaluation** — run against all 394 tasks (currently limited to 7 canonical Chromium evals)
-- **Full LLM agent eval** — the subprocess-based LLM runner needs optimization (currently times out at 600s per task)
+- **Programmatic agent** — replace the subprocess-based LLM runner with a direct Anthropic API agent loop (`scagent/agent.py`)
 - **scGPT / foundation model embeddings** — alternative to PCA for annotation transfer (tool schema defined, awaiting GPU support)
 
 ## License
