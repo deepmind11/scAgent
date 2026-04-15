@@ -12,7 +12,32 @@
 
 set -euo pipefail
 
-SCAGENT_DIR="$(cd "$(dirname "$(readlink -f "$0" 2>/dev/null || echo "$0")")" && pwd)"
+# Where the shell script (and package) lives — fallback only
+SCRIPT_DIR="$(cd "$(dirname "$(readlink -f "$0" 2>/dev/null || echo "$0")")" && pwd)"
+
+# Resolve project root: prefer cwd (or ancestor), fall back to script dir
+find_root() {
+  # Walk up from cwd
+  local dir="$PWD"
+  while true; do
+    if [ -f "$dir/.pi/SYSTEM.md" ]; then
+      echo "$dir"
+      return
+    fi
+    local parent="$(dirname "$dir")"
+    [ "$parent" = "$dir" ] && break
+    dir="$parent"
+  done
+  # Fallback: script's own directory
+  if [ -f "$SCRIPT_DIR/.pi/SYSTEM.md" ]; then
+    echo "$SCRIPT_DIR"
+    return
+  fi
+  echo "Error: Could not find scAgent project root (.pi/SYSTEM.md)." >&2
+  exit 1
+}
+
+SCAGENT_DIR="$(find_root)"
 
 if ! command -v feynman >/dev/null 2>&1; then
   echo "Error: Feynman is not installed." >&2
