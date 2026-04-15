@@ -56,7 +56,7 @@ Example prompts:
 
 ## Evaluation: SC-Bench
 
-scAgent passes **7 out of 7** canonical tasks (100%) on [SC-Bench](https://github.com/latchbio/scbench) (Workman et al., 2026, [LatchBio](https://latch.bio)), a benchmark of 394 verifiable problems derived from practical scRNA-seq workflows. The current top baseline model on SC-Bench scores 52.8%.
+scAgent passes **6 out of 7** canonical tasks (86%) on [SC-Bench](https://github.com/latchbio/scbench) (Workman et al., 2026, [LatchBio](https://latch.bio)), a benchmark of 394 verifiable problems derived from practical scRNA-seq workflows. The current top baseline model on SC-Bench scores 52.8%.
 
 | Task | Result |
 |------|--------|
@@ -66,7 +66,7 @@ scAgent passes **7 out of 7** canonical tasks (100%) on [SC-Bench](https://githu
 | Clustering | ✅ Pass |
 | Cell Type Annotation | ✅ Pass |
 | Differential Expression | ✅ Pass |
-| Trajectory Analysis | ✅ Pass |
+| Trajectory Analysis | ❌ Fail |
 
 <details>
 <summary>Reproduce the evaluation</summary>
