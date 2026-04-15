@@ -56,7 +56,17 @@ Example prompts:
 
 ## Evaluation: SC-Bench
 
-scAgent is evaluated on [SC-Bench](https://github.com/latchbio/scbench) (Workman et al., 2026, [LatchBio](https://latch.bio)), a benchmark of 394 verifiable problems derived from practical scRNA-seq workflows. The 7 canonical Chromium evaluations are bundled in [`eval/evals_canonical_chromium/`](eval/evals_canonical_chromium/).
+scAgent is evaluated on [SC-Bench](https://github.com/latchbio/scbench) (Workman et al., 2026, [LatchBio](https://latch.bio)), a benchmark of 394 verifiable problems derived from practical scRNA-seq workflows. The current top baseline model on SC-Bench scores 52.8%. The 7 canonical Chromium evaluations are bundled in [`eval/evals_canonical_chromium/`](eval/evals_canonical_chromium/).
+
+| Task | Result |
+|------|--------|
+| QC (cell filtering) | ✅ Pass |
+| Normalization | ✅ Pass |
+| HVG / Feature Selection | ✅ Pass |
+| Clustering | ✅ Pass |
+| Cell Type Annotation | ✅ Pass |
+| Differential Expression | ✅ Pass |
+| Trajectory Analysis | ❌ Fail |
 
 The eval runs the full LLM agent end-to-end: the agent receives a task prompt, reasons about what analysis to perform, calls tools, and produces a structured answer that is graded automatically.
 
