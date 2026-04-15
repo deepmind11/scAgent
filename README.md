@@ -60,13 +60,15 @@ scAgent is evaluated on [SC-Bench](https://github.com/latchbio/scbench) (Workman
 
 | Task | Result |
 |------|--------|
-| QC (cell filtering) | ❌ Fail |
 | Normalization | ✅ Pass |
 | HVG / Feature Selection | ✅ Pass |
 | Clustering | ✅ Pass |
 | Cell Type Annotation | ✅ Pass |
 | Differential Expression | ✅ Pass |
+| QC (cell filtering) | ❌ Fail |
 | Trajectory Analysis | ❌ Fail |
+
+**QC** fails because the agent applies standard textbook cutoffs (max 5,000 genes) to an already-cleaned dataset — it needs to inspect distributions before filtering and recognize when data is pre-filtered. **Trajectory** fails on terminal marker recovery; improving the diffusion map + pseudotime pipeline is next.
 
 The eval runs the full LLM agent end-to-end: the agent receives a task prompt, reasons about what analysis to perform, calls tools, and produces a structured answer that is graded automatically.
 
