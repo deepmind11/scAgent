@@ -68,7 +68,7 @@ scAgent is evaluated on [SC-Bench](https://github.com/latchbio/scbench) (Workman
 | QC (cell filtering) | ❌ Fail |
 | Trajectory Analysis | ❌ Fail |
 
-**QC** fails because the agent applies standard textbook cutoffs (max 5,000 genes) to an already-cleaned dataset — it needs to inspect distributions before filtering and recognize when data is pre-filtered. **Trajectory** fails on terminal marker recovery; improving the diffusion map + pseudotime pipeline is next.
+**QC** fails because the agent applies standard textbook cutoffs (max 5,000 genes) to an already-cleaned dataset — it needs to inspect distributions before filtering and recognize when data is pre-filtered. **Trajectory** achieves 0.5 recall on terminal marker recovery — the agent identifies the correct CAF differentiation axis (universal fibroblast → myCAF) and recovers `Ly6c1` but misses `Acta2`, a canonical myCAF marker. Improving pseudotime terminal group detection and marker ranking is next.
 
 The eval runs the full LLM agent end-to-end: the agent receives a task prompt, reasons about what analysis to perform, calls tools, and produces a structured answer that is graded automatically.
 
