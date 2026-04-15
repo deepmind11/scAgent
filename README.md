@@ -72,7 +72,7 @@ scAgent is evaluated on [SC-Bench](https://github.com/latchbio/scbench) (Workman
 
 The eval runs the full LLM agent end-to-end: the agent receives a task prompt, reasons about what analysis to perform, calls tools, and produces a structured answer that is graded automatically.
 
-We do not tune scAgent to pass specific eval tasks. Instead, we bake in the reasoning the single-cell community used to arrive at its defaults — best practices from Scanpy, Seurat, and the literature — and let the agent reason from first principles on any given dataset. When an eval fails, we ask *what general knowledge is the agent missing?*, not *what answer does this eval expect?*.
+We do not tune scAgent to pass specific eval tasks. When an eval fails, we ask *what general knowledge is the agent missing?*, not *what answer does this eval expect?*. The goal is to bake in the reasoning the single-cell community used to arrive at its defaults — best practices from Scanpy, Seurat, and the literature — and let the agent reason from first principles on any given dataset.
 
 ```bash
 pip install -e ".[eval]"
