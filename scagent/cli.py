@@ -19,17 +19,17 @@ def find_scagent_root() -> Path:
         if (root / ".pi" / "SYSTEM.md").exists():
             return root
 
-    # 2. Installed package location (scagent/ is inside the project)
-    package_dir = Path(__file__).resolve().parent
-    project_dir = package_dir.parent
-    if (project_dir / ".pi" / "SYSTEM.md").exists():
-        return project_dir
-
-    # 3. Walk up from cwd
+    # 2. Walk up from cwd (preferred — lets you run from any scAgent project)
     cwd = Path.cwd()
     for parent in [cwd, *cwd.parents]:
         if (parent / ".pi" / "SYSTEM.md").exists():
             return parent
+
+    # 3. Installed package location (fallback — editable installs point here)
+    package_dir = Path(__file__).resolve().parent
+    project_dir = package_dir.parent
+    if (project_dir / ".pi" / "SYSTEM.md").exists():
+        return project_dir
 
     print("Error: Could not find scAgent project root (.pi/SYSTEM.md).", file=sys.stderr)
     print("Either:", file=sys.stderr)
