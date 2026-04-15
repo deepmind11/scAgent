@@ -60,7 +60,7 @@ scAgent is evaluated on [SC-Bench](https://github.com/latchbio/scbench) (Workman
 
 | Task | Result |
 |------|--------|
-| QC (cell filtering) | ✅ Pass |
+| QC (cell filtering) | ❌ Fail |
 | Normalization | ✅ Pass |
 | HVG / Feature Selection | ✅ Pass |
 | Clustering | ✅ Pass |
