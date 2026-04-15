@@ -72,7 +72,9 @@ scAgent is evaluated on [SC-Bench](https://github.com/latchbio/scbench) (Workman
 
 The eval runs the full LLM agent end-to-end: the agent receives a task prompt, reasons about what analysis to perform, calls tools, and produces a structured answer that is graded automatically.
 
-We do not tune scAgent to pass specific eval tasks. When an eval fails, we ask *what general knowledge is the agent missing?*, not *what answer does this eval expect?*. The goal is to bake in the reasoning the single-cell community used to arrive at its defaults — best practices from Scanpy, Seurat, and the literature — and let the agent reason from first principles on any given dataset.
+For future versions of scAgent, the goal is to embed first-principles reasoning directly into the system, enabling the agent to infer insights from the data itself rather than relying solely on standard community-defined thresholds and heuristics.
+
+At present, scAgent does not implement its own agent loop and instead relies on Pi-Monos' agentic framework. A key direction moving forward is to develop a single-cell–specific agent loop that more closely mirrors the reasoning workflow of a computational biologist. This includes structuring the analysis into distinct phases—such as data exploration, quality control, normalization, and interpretation—allowing the agent to make context-aware decisions at each step rather than applying static pipelines.
 
 ```bash
 pip install -e ".[eval]"
@@ -220,15 +222,7 @@ See [outputs/architecture.md](outputs/architecture.md) for the full system desig
 - [CellTypist](https://www.celltypist.org/) — cell type annotation
 - [minSCe guidelines](https://doi.org/10.1038/s41587-020-00744-z) (Füllgrabe et al., 2020) — experiment metadata standards for scRNA-seq reporting
 
-## Coming Soon
 
-For future versions of scAgent, the goal is to embed first-principles reasoning directly into the system, enabling the agent to infer insights from the data itself rather than relying solely on standard community-defined thresholds and heuristics.
-
-At present, scAgent does not implement its own agent loop and instead relies on Pi-Monos' agentic framework. A key direction moving forward is to develop a single-cell–specific agent loop that more closely mirrors the reasoning workflow of a computational biologist. This includes structuring the analysis into distinct phases—such as data exploration, quality control, normalization, and interpretation—allowing the agent to make context-aware decisions at each step rather than applying static pipelines.
-
-- **Full SC-Bench evaluation** — run against all 394 tasks (currently limited to 7 canonical Chromium evals)
-- **Programmatic agent** — replace the subprocess-based LLM runner with a direct Anthropic API agent loop (`scagent/agent.py`)
-- **scGPT / foundation model embeddings** — alternative to PCA for annotation transfer (tool schema defined, awaiting GPU support)
 
 ## License
 
