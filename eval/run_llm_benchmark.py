@@ -53,12 +53,47 @@ After completing the analysis, write ONLY the answer JSON to this file:
 Do NOT include any text or explanation in the answer file — just the raw JSON object."""
 
 
+def _load_auth_env() -> dict[str, str]:
+    """Load Anthropic OAuth token from .pi/auth.json into env vars.
+
+    pi -p in subprocess mode doesn't inherit Feynman's OAuth session,
+    so we read the access token and pass it as ANTHROPIC_API_KEY.
+    Falls back to existing env var if auth.json is missing.
+    """
+    env = os.environ.copy()
+    if env.get("ANTHROPIC_API_KEY"):
+        return env  # already set
+
+    auth_file = SCAGENT_ROOT / ".pi" / "auth.json"
+    if auth_file.exists():
+        try:
+            import json as _json
+            auth = _json.loads(auth_file.read_text())
+            token = auth.get("anthropic", {}).get("access")
+            if token:
+                env["ANTHROPIC_API_KEY"] = token
+        except Exception:
+            pass
+
+    if not env.get("ANTHROPIC_API_KEY"):
+        print(
+            "Error: No Anthropic API key found.\n"
+            "Either set ANTHROPIC_API_KEY or run 'feynman setup' to authenticate.",
+            file=sys.stderr,
+        )
+        sys.exit(1)
+
+    return env
+
+
 def run_agent(prompt: str, model: str) -> tuple[bool, str]:
     """Run the agent via pi in non-interactive mode."""
     pi_bin = shutil.which("pi")
     if not pi_bin:
         print("Error: pi not found. Install Feynman: curl -fsSL https://feynman.is/install | bash", file=sys.stderr)
         sys.exit(1)
+
+    env = _load_auth_env()
 
     # Write prompt to temp file to avoid shell escaping issues
     prompt_file = Path(tempfile.mktemp(suffix=".md", prefix="eval_prompt_"))
@@ -71,6 +106,7 @@ def run_agent(prompt: str, model: str) -> tuple[bool, str]:
             capture_output=True,
             text=True,
             timeout=300,
+            env=env,
         )
     finally:
         prompt_file.unlink(missing_ok=True)
