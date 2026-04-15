@@ -12,12 +12,12 @@
 
 set -euo pipefail
 
-# Where the shell script (and package) lives — fallback only
+# Where the script (and package) lives — used for config fallback
 SCRIPT_DIR="$(cd "$(dirname "$(readlink -f "$0" 2>/dev/null || echo "$0")")" && pwd)"
 
-# Resolve project root: prefer cwd (or ancestor), fall back to script dir
-find_root() {
-  # Walk up from cwd
+# Resolve config root + working directory
+# Priority: cwd project > script location (config only)
+find_local_project() {
   local dir="$PWD"
   while true; do
     if [ -f "$dir/.pi/SYSTEM.md" ]; then
@@ -28,16 +28,22 @@ find_root() {
     [ "$parent" = "$dir" ] && break
     dir="$parent"
   done
-  # Fallback: script's own directory
-  if [ -f "$SCRIPT_DIR/.pi/SYSTEM.md" ]; then
-    echo "$SCRIPT_DIR"
-    return
-  fi
-  echo "Error: Could not find scAgent project root (.pi/SYSTEM.md)." >&2
-  exit 1
+  return 1
 }
 
-SCAGENT_DIR="$(find_root)"
+WORK_DIR="$PWD"
+
+if LOCAL="$(find_local_project)"; then
+  # Running inside a scAgent project — use it for config + working dir
+  CONFIG_ROOT="$LOCAL"
+  WORK_DIR="$LOCAL"
+elif [ -f "$SCRIPT_DIR/.pi/SYSTEM.md" ]; then
+  # No local project — use script's config, stay in user's directory
+  CONFIG_ROOT="$SCRIPT_DIR"
+else
+  echo "Error: Could not find scAgent project root (.pi/SYSTEM.md)." >&2
+  exit 1
+fi
 
 if ! command -v feynman >/dev/null 2>&1; then
   echo "Error: Feynman is not installed." >&2
@@ -46,6 +52,6 @@ if ! command -v feynman >/dev/null 2>&1; then
   exit 1
 fi
 
-export FEYNMAN_CODING_AGENT_DIR="$SCAGENT_DIR/.pi"
-cd "$SCAGENT_DIR"
+export FEYNMAN_CODING_AGENT_DIR="$CONFIG_ROOT/.pi"
+cd "$WORK_DIR"
 exec feynman "$@"

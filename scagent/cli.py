@@ -10,26 +10,51 @@ import sys
 from pathlib import Path
 
 
-def find_scagent_root() -> Path:
-    """Find the scAgent project root by locating .pi/SYSTEM.md."""
-    # 1. Explicit env var
-    env_root = os.environ.get("SCAGENT_ROOT")
-    if env_root:
-        root = Path(env_root)
-        if (root / ".pi" / "SYSTEM.md").exists():
-            return root
+def _package_root() -> Path | None:
+    """Return the scAgent project root next to the installed package, if valid."""
+    package_dir = Path(__file__).resolve().parent  # scagent/
+    project_dir = package_dir.parent               # scAgent/
+    if (project_dir / ".pi" / "SYSTEM.md").exists():
+        return project_dir
+    return None
 
-    # 2. Walk up from cwd (preferred — lets you run from any scAgent project)
+
+def _find_local_project() -> Path | None:
+    """Walk up from cwd to find a directory with .pi/SYSTEM.md."""
     cwd = Path.cwd()
     for parent in [cwd, *cwd.parents]:
         if (parent / ".pi" / "SYSTEM.md").exists():
             return parent
+    return None
 
-    # 3. Installed package location (fallback — editable installs point here)
-    package_dir = Path(__file__).resolve().parent
-    project_dir = package_dir.parent
-    if (project_dir / ".pi" / "SYSTEM.md").exists():
-        return project_dir
+
+def resolve_roots() -> tuple[Path, Path]:
+    """Return (config_root, work_dir).
+
+    - config_root: where .pi/ lives (system prompt, skills, tool schemas)
+    - work_dir:    where feynman should run (where the user's data is)
+
+    Priority:
+      1. SCAGENT_ROOT env var         → config + work dir
+      2. Local project (cwd ancestor) → config + work dir
+      3. Package location             → config only, work dir stays as cwd
+    """
+    # 1. Explicit env var — full override
+    env_root = os.environ.get("SCAGENT_ROOT")
+    if env_root:
+        root = Path(env_root)
+        if (root / ".pi" / "SYSTEM.md").exists():
+            return root, root
+
+    # 2. Local project in cwd tree — use it for both
+    local = _find_local_project()
+    if local:
+        return local, local
+
+    # 3. No local project — use package config but stay in cwd
+    pkg = _package_root()
+    if pkg:
+        return pkg, Path.cwd()
 
     print("Error: Could not find scAgent project root (.pi/SYSTEM.md).", file=sys.stderr)
     print("Either:", file=sys.stderr)
@@ -40,7 +65,7 @@ def find_scagent_root() -> Path:
 
 def main():
     """Entry point for the scagent command."""
-    root = find_scagent_root()
+    config_root, work_dir = resolve_roots()
 
     # Find feynman
     feynman = shutil.which("feynman")
@@ -53,12 +78,12 @@ def main():
         print("Then run: feynman setup", file=sys.stderr)
         sys.exit(1)
 
-    # Set the agent config to scAgent's .pi/ directory
-    os.environ["FEYNMAN_CODING_AGENT_DIR"] = str(root / ".pi")
+    # Point feynman at the scAgent config
+    os.environ["FEYNMAN_CODING_AGENT_DIR"] = str(config_root / ".pi")
 
-    # Launch feynman from the project root
+    # Launch feynman in the working directory
     args = [feynman] + sys.argv[1:]
-    os.chdir(root)
+    os.chdir(work_dir)
     os.execvp(args[0], args)
 
 
